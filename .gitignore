@@ -41,6 +41,7 @@ instance/
 .env.development
 .env.test
 .env.production
+.env.backup
 
 # IDE
 .vscode/
