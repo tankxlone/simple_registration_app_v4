@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Feedback App{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white text-center">
+                <h2 class="h4 mb-0" id="register-title">
+                    <i class="bi bi-person-plus"></i> Create Account
+                </h2>
+            </div>
+            <div class="card-body">
+                <form id="register-form" novalidate aria-labelledby="register-title">
+                    <!-- Name Field -->
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Full Name</label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-person" aria-hidden="true"></i>
+                            </span>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="name" 
+                                   name="name" 
+                                   placeholder="Enter your full name"
+                                   required
+                                   minlength="2"
+                                   maxlength="50"
+                                   aria-describedby="name-error"
+                                   autocomplete="name">
+                        </div>
+                        <div class="invalid-feedback" id="name-error"></div>
+                        <div class="form-text">Only letters and spaces allowed (2-50 characters)</div>
+                    </div>
+
+                    <!-- Email Field -->
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email address</label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-envelope" aria-hidden="true"></i>
+                            </span>
+                            <input type="email" 
+                                   class="form-control" 
+                                   id="email" 
+                                   name="email" 
+                                   placeholder="Enter your email"
+                                   required
+                                   aria-describedby="email-error"
+                                   autocomplete="email">
+                        </div>
+                        <div class="invalid-feedback" id="email-error"></div>
+                    </div>
+
+                    <!-- Password Field -->
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-lock" aria-hidden="true"></i>
+                            </span>
+                            <input type="password" 
+                                   class="form-control" 
+                                   id="password" 
+                                   name="password" 
+                                   placeholder="Create a strong password"
+                                   required
+                                   minlength="8"
+                                   aria-describedby="password-error password-requirements"
+                                   autocomplete="new-password">
+                            <button class="btn btn-outline-secondary" 
+                                    type="button" 
+                                    id="toggle-password"
+                                    aria-label="Toggle password visibility">
+                                <i class="bi bi-eye" id="password-icon"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback" id="password-error"></div>
+                        <div class="form-text" id="password-requirements">
+                            <strong>Password must contain:</strong>
+                            <ul class="mb-0 mt-1">
+                                <li id="req-length">At least 8 characters</li>
+                                <li id="req-uppercase">One uppercase letter</li>
+                                <li id="req-lowercase">One lowercase letter</li>
+                                <li id="req-number">One number</li>
+                                <li id="req-special">One special character</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Confirm Password Field -->
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">Confirm Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-lock-fill" aria-hidden="true"></i>
+                            </span>
+                            <input type="password" 
+                                   class="form-control" 
+                                   id="confirm_password" 
+                                   name="confirm_password" 
+                                   placeholder="Confirm your password"
+                                   required
+                                   aria-describedby="confirm-password-error">
+                        </div>
+                        <div class="invalid-feedback" id="confirm-password-error"></div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="d-grid">
+                        <button type="submit" 
+                                class="btn btn-success btn-lg" 
+                                id="register-submit">
+                            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                            <span class="btn-text">Create Account</span>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Links -->
+                <div class="text-center mt-3">
+                    <p class="mb-1">
+                        Already have an account? 
+                        <a href="{{ url_for('auth.login') }}" class="text-decoration-none">Login here</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('register-form');
+    const nameField = document.getElementById('name');
+    const emailField = document.getElementById('email');
+    const passwordField = document.getElementById('password');
+    const confirmPasswordField = document.getElementById('confirm_password');
+    const submitBtn = document.getElementById('register-submit');
+    const togglePasswordBtn = document.getElementById('toggle-password');
+    const passwordIcon = document.getElementById('password-icon');
+
+    // Password strength indicators
+    const reqLength = document.getElementById('req-length');
+    const reqUppercase = document.getElementById('req-uppercase');
+    const reqLowercase = document.getElementById('req-lowercase');
+    const reqNumber = document.getElementById('req-number');
+    const reqSpecial = document.getElementById('req-special');
+
+    // Toggle password visibility
+    togglePasswordBtn.addEventListener('click', function() {
+        const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordField.setAttribute('type', type);
+        passwordIcon.className = type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+    });
+
+    // Password strength validation
+    function validatePasswordStrength(password) {
+        const requirements = {
+            length: password.length >= 8,
+            uppercase: /[A-Z]/.test(password),
+            lowercase: /[a-z]/.test(password),
+            number: /\d/.test(password),
+            special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+        };
+
+        // Update visual indicators
+        reqLength.className = requirements.length ? 'text-success' : 'text-danger';
+        reqUppercase.className = requirements.uppercase ? 'text-success' : 'text-danger';
+        reqLowercase.className = requirements.lowercase ? 'text-success' : 'text-danger';
+        reqNumber.className = requirements.number ? 'text-success' : 'text-danger';
+        reqSpecial.className = requirements.special ? 'text-success' : 'text-danger';
+
+        return requirements;
+    }
+
+    // Real-time password validation
+    passwordField.addEventListener('input', function() {
+        validatePasswordStrength(this.value);
+        this.classList.remove('is-invalid');
+        
+        // Check if passwords match
+        if (confirmPasswordField.value) {
+            Validation.validatePasswordMatch(passwordField, confirmPasswordField);
+        }
+    });
+
+    // Confirm password validation
+    confirmPasswordField.addEventListener('input', function() {
+        Validation.validatePasswordMatch(passwordField, this);
+    });
+
+    // Form submission
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        if (!Validation.validateForm(form)) {
+            return;
+        }
+
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.querySelector('.spinner-border').classList.remove('d-none');
+        submitBtn.querySelector('.btn-text').textContent = 'Creating Account...';
+
+        try {
+            const formData = {
+                name: nameField.value.trim(),
+                email: emailField.value.trim(),
+                password: passwordField.value,
+                confirm_password: confirmPasswordField.value
+            };
+
+            const response = await fetch('{{ url_for("auth.register") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Show success message
+                App.showFlashMessage(data.message || 'Account created successfully!', 'success');
+                
+                // Redirect based on server response
+                const redirectUrl = data.redirect || '{{ url_for("main.dashboard") }}';
+                setTimeout(() => {
+                    window.location.href = redirectUrl;
+                }, 1500);
+            } else {
+                // Show error message
+                if (data.errors) {
+                    // Field-specific errors
+                    Object.keys(data.errors).forEach(field => {
+                        const fieldElement = document.getElementById(field);
+                        const errorElement = document.getElementById(field + '-error');
+                        if (fieldElement && errorElement) {
+                            fieldElement.classList.add('is-invalid');
+                            errorElement.textContent = data.errors[field];
+                        }
+                    });
+                } else if (data.error) {
+                    App.showFlashMessage(data.error, 'danger');
+                }
+            }
+        } catch (error) {
+            console.error('Registration error:', error);
+            App.showFlashMessage('An error occurred during registration. Please try again.', 'danger');
+        } finally {
+            // Reset button state
+            submitBtn.disabled = false;
+            submitBtn.querySelector('.spinner-border').classList.add('d-none');
+            submitBtn.querySelector('.btn-text').textContent = 'Create Account';
+        }
+    });
+
+    // Real-time validation
+    nameField.addEventListener('blur', function() {
+        Validation.validateName(this);
+    });
+
+    emailField.addEventListener('blur', function() {
+        Validation.validateEmail(this);
+    });
+
+    passwordField.addEventListener('blur', function() {
+        Validation.validatePassword(this);
+    });
+
+    confirmPasswordField.addEventListener('blur', function() {
+        Validation.validatePasswordMatch(passwordField, this);
+    });
+
+    // Clear validation on input
+    [nameField, emailField, passwordField, confirmPasswordField].forEach(field => {
+        field.addEventListener('input', function() {
+            this.classList.remove('is-invalid');
+        });
+    });
+});
+</script>
+{% endblock %}

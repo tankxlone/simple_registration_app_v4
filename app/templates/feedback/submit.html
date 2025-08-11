@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+
+{% block title %}Submit Feedback - Feedback App{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h2 class="h4 mb-0">
+                    <i class="bi bi-chat-dots"></i> Submit Feedback
+                </h2>
+            </div>
+            <div class="card-body">
+                <form id="feedback-form" novalidate>
+                    <!-- Feedback Text -->
+                    <div class="mb-4">
+                        <label for="feedback-text" class="form-label">Your Feedback</label>
+                        <textarea class="form-control" 
+                                  id="feedback-text" 
+                                  name="text" 
+                                  rows="5" 
+                                  placeholder="Share your thoughts, suggestions, or experiences..."
+                                  required
+                                  minlength="10"
+                                  maxlength="500"
+                                  aria-describedby="text-error text-help"></textarea>
+                        <div class="form-text" id="text-help">
+                            <span id="char-count">0</span>/500 characters
+                        </div>
+                        <div class="invalid-feedback" id="text-error"></div>
+                    </div>
+
+                    <!-- Rating -->
+                    <div class="mb-4">
+                        <label class="form-label">Rating</label>
+                        <div class="rating-input">
+                            <div class="btn-group" role="group" aria-label="Rating selection">
+                                <input type="radio" class="btn-check" name="rating" id="rating1" value="1" required>
+                                <label class="btn btn-outline-warning" for="rating1">
+                                    <i class="bi bi-star"></i> 1
+                                </label>
+                                
+                                <input type="radio" class="btn-check" name="rating" id="rating2" value="2">
+                                <label class="btn btn-outline-warning" for="rating2">
+                                    <i class="bi bi-star"></i> 2
+                                </label>
+                                
+                                <input type="radio" class="btn-check" name="rating" id="rating3" value="3">
+                                <label class="btn btn-outline-warning" for="rating3">
+                                    <i class="bi bi-star"></i> 3
+                                </label>
+                                
+                                <input type="radio" class="btn-check" name="rating" id="rating4" value="4">
+                                <label class="btn btn-outline-warning" for="rating4">
+                                    <i class="bi bi-star"></i> 4
+                                </label>
+                                
+                                <input type="radio" class="btn-check" name="rating" id="rating5" value="5">
+                                <label class="btn btn-outline-warning" for="rating5">
+                                    <i class="bi bi-star"></i> 5
+                                </label>
+                            </div>
+                        </div>
+                        <div class="invalid-feedback" id="rating-error"></div>
+                    </div>
+
+                    <!-- Real-time Sentiment Preview -->
+                    <div class="mb-4" id="sentiment-preview" style="display: none;">
+                        <label class="form-label">Sentiment Analysis Preview</label>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <span class="me-2">Sentiment:</span>
+                                            <span id="sentiment-label" class="badge"></span>
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <span class="me-2">Confidence:</span>
+                                            <div class="progress flex-grow-1" style="height: 20px;">
+                                                <div class="progress-bar" id="confidence-bar" role="progressbar"></div>
+                                            </div>
+                                            <span class="ms-2" id="confidence-text"></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 text-center">
+                                        <div id="sentiment-icon" class="display-4"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="d-grid">
+                        <button type="submit" 
+                                class="btn btn-primary btn-lg" 
+                                id="submit-feedback">
+                            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                            <span class="btn-text">Submit Feedback</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('feedback-form');
+    const textArea = document.getElementById('feedback-text');
+    const charCount = document.getElementById('char-count');
+    const sentimentPreview = document.getElementById('sentiment-preview');
+    const sentimentLabel = document.getElementById('sentiment-label');
+    const confidenceBar = document.getElementById('confidence-bar');
+    const confidenceText = document.getElementById('confidence-text');
+    const sentimentIcon = document.getElementById('sentiment-icon');
+    const submitBtn = document.getElementById('submit-feedback');
+
+    // Character counter
+    textArea.addEventListener('input', function() {
+        const length = this.value.length;
+        charCount.textContent = length;
+        
+        // Update character count color
+        if (length < 10) {
+            charCount.className = 'text-danger';
+        } else if (length > 450) {
+            charCount.className = 'text-warning';
+        } else {
+            charCount.className = 'text-success';
+        }
+        
+        // Real-time sentiment preview (debounced)
+        if (length >= 10) {
+            debouncedSentimentPreview(this.value);
+        } else {
+            sentimentPreview.style.display = 'none';
+        }
+    });
+
+    // Debounced sentiment preview
+    const debouncedSentimentPreview = App.debounce(async function(text) {
+        try {
+            const response = await fetch('/api/feedback/preview', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ text: text })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                displaySentimentPreview(data);
+            }
+        } catch (error) {
+            console.error('Sentiment preview error:', error);
+        }
+    }, 1000);
+
+    // Display sentiment preview
+    function displaySentimentPreview(data) {
+        sentimentPreview.style.display = 'block';
+        
+        // Update sentiment label
+        const sentimentColors = {
+            'positive': 'success',
+            'negative': 'danger',
+            'neutral': 'secondary'
+        };
+        
+        const sentimentIcons = {
+            'positive': 'bi-emoji-smile text-success',
+            'negative': 'bi-emoji-frown text-danger',
+            'neutral': 'bi-emoji-neutral text-secondary'
+        };
+        
+        sentimentLabel.className = `badge bg-${sentimentColors[data.sentiment]}`;
+        sentimentLabel.textContent = data.sentiment.charAt(0).toUpperCase() + data.sentiment.slice(1);
+        
+        // Update confidence bar
+        const confidencePercent = (data.confidence * 100).toFixed(1);
+        confidenceBar.style.width = confidencePercent + '%';
+        confidenceBar.className = `progress-bar bg-${sentimentColors[data.sentiment]}`;
+        confidenceText.textContent = confidencePercent + '%';
+        
+        // Update sentiment icon
+        sentimentIcon.className = sentimentIcons[data.sentiment];
+        
+        // Show banned words warning if applicable
+        if (data.banned_words_detected) {
+            App.showFlashMessage('Warning: Your feedback contains inappropriate content that may be flagged.', 'warning');
+        }
+    }
+
+    // Form submission
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        if (!Validation.validateForm(form)) {
+            return;
+        }
+
+        // Show loading state
+        App.showLoading(submitBtn, 'Submitting...');
+
+        try {
+            const formData = {
+                text: textArea.value.trim(),
+                rating: document.querySelector('input[name="rating"]:checked').value
+            };
+
+            const response = await fetch('{{ url_for("feedback.submit_feedback") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Show success message
+                App.showFlashMessage('Feedback submitted successfully! Thank you for your input.', 'success');
+                
+                // Reset form
+                form.reset();
+                sentimentPreview.style.display = 'none';
+                charCount.textContent = '0';
+                charCount.className = '';
+                
+                // Redirect to feedback history after short delay
+                setTimeout(() => {
+                    window.location.href = '{{ url_for("feedback.my_feedback") }}';
+                }, 1500);
+            } else {
+                // Show error message
+                if (data.errors) {
+                    Object.keys(data.errors).forEach(field => {
+                        const fieldElement = document.getElementById(field === 'text' ? 'feedback-text' : field);
+                        const errorElement = document.getElementById(field === 'text' ? 'text-error' : field + '-error');
+                        if (fieldElement && errorElement) {
+                            fieldElement.classList.add('is-invalid');
+                            errorElement.textContent = data.errors[field];
+                        }
+                    });
+                } else if (data.error) {
+                    App.showFlashMessage(data.error, 'danger');
+                }
+            }
+        } catch (error) {
+            console.error('Feedback submission error:', error);
+            App.showFlashMessage('An error occurred while submitting feedback. Please try again.', 'danger');
+        } finally {
+            // Reset button state
+            App.hideLoading(submitBtn);
+        }
+    });
+
+    // Real-time validation
+    textArea.addEventListener('blur', function() {
+        Validation.validateText(this);
+    });
+
+    // Clear validation on input
+    textArea.addEventListener('input', function() {
+        this.classList.remove('is-invalid');
+    });
+
+    // Rating validation
+    const ratingInputs = document.querySelectorAll('input[name="rating"]');
+    ratingInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            document.getElementById('rating-error').textContent = '';
+        });
+    });
+});
+</script>
+{% endblock %}

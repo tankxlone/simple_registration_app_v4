@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Debug</title>
+</head>
+<body>
+    <h1>Cookie Debug Test</h1>
+    
+    <div id="cookie-info">
+        <h3>Cookie Information:</h3>
+        <div id="all-cookies"></div>
+        <div id="access-token"></div>
+        <div id="refresh-token"></div>
+    </div>
+    
+    <div id="test-buttons">
+        <button onclick="testLogin()">Test Login</button>
+        <button onclick="testGetUser()">Test Get User</button>
+        <button onclick="checkCookies()">Check Cookies</button>
+        <button onclick="testAuthJS()">Test Auth.js getCookie</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        // Test the exact getCookie function from auth.js
+        function getCookie(name) {
+            console.log("getCookie called for:", name);
+            console.log("document.cookie:", document.cookie);
+            
+            // Split cookies by semicolon and space
+            const cookies = document.cookie.split('; ');
+            console.log("Cookies array:", cookies);
+            
+            // Find the cookie with the specified name
+            for (let cookie of cookies) {
+                const [cookieName, cookieValue] = cookie.split('=');
+                console.log("Checking cookie:", cookieName, "=", cookieValue);
+                if (cookieName === name) {
+                    console.log("Found cookie:", name, "=", cookieValue);
+                    return cookieValue;
+                }
+            }
+            
+            console.log("Cookie not found:", name);
+            return null;
+        }
+        
+        function testLogin() {
+            fetch('/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: 'testauth@example.com',
+                    password: 'testpass123'
+                }),
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('results').innerHTML = '<pre>Login Response: ' + JSON.stringify(data, null, 2) + '</pre>';
+                // After login, check cookies
+                setTimeout(checkCookies, 1000);
+            })
+            .catch(error => {
+                document.getElementById('results').innerHTML = 'Error: ' + error.message;
+            });
+        }
+        
+        function testGetUser() {
+            fetch('/auth/me', {
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('results').innerHTML = '<pre>User Info: ' + JSON.stringify(data, null, 2) + '</pre>';
+            })
+            .catch(error => {
+                document.getElementById('results').innerHTML = 'Error: ' + error.message;
+            });
+        }
+        
+        function checkCookies() {
+            const cookies = document.cookie;
+            document.getElementById('all-cookies').innerHTML = '<strong>All Cookies:</strong><pre>' + cookies + '</pre>';
+            
+            const accessToken = getCookie('access_token_cookie');
+            const refreshToken = getCookie('refresh_token_cookie');
+            
+            document.getElementById('access-token').innerHTML = '<strong>Access Token:</strong> ' + (accessToken ? accessToken.substring(0, 50) + '...' : 'None');
+            document.getElementById('refresh-token').innerHTML = '<strong>Refresh Token:</strong> ' + (refreshToken ? refreshToken.substring(0, 50) + '...' : 'None');
+        }
+        
+        function testAuthJS() {
+            const accessToken = getCookie('access_token_cookie');
+            document.getElementById('results').innerHTML = '<h3>Auth.js getCookie Test:</h3><p>Access Token: ' + (accessToken ? 'FOUND' : 'NOT FOUND') + '</p>';
+        }
+        
+        // Check cookies on page load
+        window.onload = function() {
+            checkCookies();
+        };
+    </script>
+</body>
+</html>

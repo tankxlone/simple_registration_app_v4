@@ -1,0 +1,210 @@
+{% extends "base.html" %} {% block title %}Home - Feedback App{% endblock %} {%
+block content %}
+<!-- Hero Section -->
+<div class="row align-items-center py-5">
+  <div class="col-lg-6">
+    <h1 class="display-4 fw-bold text-primary mb-4">
+      Get Valuable Insights from Your Users
+    </h1>
+    <p class="lead mb-4">
+      Our secure feedback platform uses advanced sentiment analysis to help you
+      understand user sentiment and improve your products or services.
+    </p>
+    <div
+      class="d-grid gap-2 d-md-flex justify-content-md-start"
+      id="hero-buttons"
+    >
+      {% if user %} {% if user.has_submitted_feedback %}
+      <!-- User has completed welcome feedback - show dashboard only -->
+      <a href="/dashboard" class="btn btn-primary btn-lg px-4 me-md-2">
+        <i class="bi bi-speedometer2"></i> Go to Dashboard
+      </a>
+      <a href="/profile" class="btn btn-outline-secondary btn-lg px-4">
+        <i class="bi bi-person"></i> My Profile
+      </a>
+      {% else %}
+      <!-- User needs to complete welcome feedback -->
+      <a href="/feedback/welcome" class="btn btn-success btn-lg px-4 me-md-2">
+        <i class="bi bi-chat-dots"></i> Complete Welcome Feedback
+      </a>
+      <a href="/profile" class="btn btn-outline-secondary btn-lg px-4">
+        <i class="bi bi-person"></i> My Profile
+      </a>
+      {% endif %} {% else %}
+      <!-- Guest buttons -->
+      <a
+        href="{{ url_for('auth.register') }}"
+        class="btn btn-primary btn-lg px-4 me-md-2"
+      >
+        <i class="bi bi-person-plus"></i> Get Started
+      </a>
+      <a
+        href="{{ url_for('main.about') }}"
+        class="btn btn-outline-secondary btn-lg px-4"
+      >
+        <i class="bi bi-info-circle"></i> Learn More
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-6 text-center">
+    <div class="p-5">
+      <i class="bi bi-chat-dots display-1 text-primary"></i>
+    </div>
+  </div>
+</div>
+
+<!-- Features Section -->
+<div class="row py-5">
+  <div class="col-12">
+    <h2 class="text-center mb-5">Why Choose Our Platform?</h2>
+  </div>
+
+  <div class="col-md-4 mb-4">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body text-center p-4">
+        <div class="mb-3">
+          <i class="bi bi-shield-check display-4 text-success"></i>
+        </div>
+        <h5 class="card-title">Secure & Private</h5>
+        <p class="card-text">
+          Enterprise-grade security with JWT authentication, role-based access
+          control, and secure file uploads.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4 mb-4">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body text-center p-4">
+        <div class="mb-3">
+          <i class="bi bi-graph-up display-4 text-primary"></i>
+        </div>
+        <h5 class="card-title">AI-Powered Analysis</h5>
+        <p class="card-text">
+          Advanced sentiment analysis using VADER or Hugging Face models with
+          real-time preview capabilities.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4 mb-4">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body text-center p-4">
+        <div class="mb-3">
+          <i class="bi bi-people display-4 text-warning"></i>
+        </div>
+        <h5 class="card-title">Role-Based Access</h5>
+        <p class="card-text">
+          Comprehensive admin dashboard for user management, feedback oversight,
+          and data export capabilities.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- How It Works Section -->
+<div class="row py-5 bg-light">
+  <div class="col-12">
+    <h2 class="text-center mb-5">How It Works</h2>
+  </div>
+
+  <div class="col-md-3 text-center mb-4">
+    <div class="mb-3">
+      <div
+        class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center"
+        style="width: 60px; height: 60px"
+      >
+        <span class="h4 mb-0">1</span>
+      </div>
+    </div>
+    <h5>Register & Login</h5>
+    <p class="text-muted">Create your account with secure authentication</p>
+  </div>
+
+  <div class="col-md-3 text-center mb-4">
+    <div class="mb-3">
+      <div
+        class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center"
+        style="width: 60px; height: 60px"
+      >
+        <span class="h4 mb-0">2</span>
+      </div>
+    </div>
+    <h5>Submit Feedback</h5>
+    <p class="text-muted">Share your thoughts with text and ratings</p>
+  </div>
+
+  <div class="col-md-3 text-center mb-4">
+    <div class="mb-3">
+      <div
+        class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center"
+        style="width: 60px; height: 60px"
+      >
+        <span class="h4 mb-0">3</span>
+      </div>
+    </div>
+    <h5>AI Analysis</h5>
+    <p class="text-muted">Get instant sentiment analysis results</p>
+  </div>
+
+  <div class="col-md-3 text-center mb-4">
+    <div class="mb-3">
+      <div
+        class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center"
+        style="width: 60px; height: 60px"
+      >
+        <span class="h4 mb-0">4</span>
+      </div>
+    </div>
+    <h5>Track Progress</h5>
+    <p class="text-muted">Monitor feedback history and insights</p>
+  </div>
+</div>
+
+<!-- CTA Section -->
+<div class="row py-5">
+  <div class="col-12 text-center">
+    {% if user %} {% if user.has_submitted_feedback %}
+    <!-- User has completed welcome feedback -->
+    <h2 class="mb-4">Welcome back, {{ user.name }}!</h2>
+    <p class="lead mb-4">Continue building insights with your feedback data.</p>
+    <div class="d-grid gap-2 d-md-flex justify-content-center">
+      <a href="/dashboard" class="btn btn-primary btn-lg px-4 me-md-2">
+        <i class="bi bi-speedometer2"></i> View Dashboard
+      </a>
+      <a href="/profile" class="btn btn-outline-secondary btn-lg px-4">
+        <i class="bi bi-person"></i> My Profile
+      </a>
+    </div>
+    {% else %}
+    <!-- User needs to complete welcome feedback -->
+    <h2 class="mb-4">Welcome, {{ user.name }}!</h2>
+    <p class="lead mb-4">Complete your welcome feedback to get started.</p>
+    <div class="d-grid gap-2 d-md-flex justify-content-center">
+      <a href="/feedback/welcome" class="btn btn-success btn-lg px-4 me-md-2">
+        <i class="bi bi-chat-dots"></i> Complete Welcome Feedback
+      </a>
+      <a href="/profile" class="btn btn-outline-secondary btn-lg px-4">
+        <i class="bi bi-person"></i> My Profile
+      </a>
+    </div>
+    {% endif %} {% else %}
+    <!-- Guest CTA -->
+    <h2 class="mb-4">Ready to Get Started?</h2>
+    <p class="lead mb-4">
+      Join thousands of users who trust our platform for their feedback needs.
+    </p>
+    <a
+      href="{{ url_for('auth.register') }}"
+      class="btn btn-primary btn-lg px-5"
+    >
+      <i class="bi bi-rocket"></i> Start Your Free Trial
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

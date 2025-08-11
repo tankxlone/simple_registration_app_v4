@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - Feedback App{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="bi bi-person-circle"></i> My Profile
+            </h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Profile Information -->
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle"></i> Profile Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="profile-form" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="name" class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="name" name="name" 
+                                       value="{{ user.name }}" required minlength="2" maxlength="50">
+                                <div class="invalid-feedback" id="name-error"></div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" value="{{ user.email }}" 
+                                       readonly disabled>
+                                <small class="text-muted">Email cannot be changed</small>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="role" class="form-label">Role</label>
+                                <input type="text" class="form-control" id="role" value="{{ user.role|title }}" 
+                                       readonly disabled>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="created_at" class="form-label">Member Since</label>
+                                <input type="text" class="form-control" id="created_at" 
+                                       value="{{ user.created_at.strftime('%B %d, %Y') }}" readonly disabled>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="avatar" class="form-label">Profile Picture</label>
+                            <input type="file" class="form-control" id="avatar" name="avatar" 
+                                   accept="image/png,image/jpeg,image/jpg">
+                            <div class="form-text">Upload a PNG, JPG, or JPEG file (max 2MB)</div>
+                            <div class="invalid-feedback" id="avatar-error"></div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Update Profile
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Picture -->
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-image"></i> Profile Picture
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        {% if user.avatar_filename %}
+                            <img src="{{ url_for('profile.get_avatar', filename=user.avatar_filename) }}" 
+                                 alt="Profile Picture" class="img-fluid rounded-circle" 
+                                 style="width: 150px; height: 150px; object-fit: cover;">
+                        {% else %}
+                            <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center" 
+                                 style="width: 150px; height: 150px;">
+                                <i class="bi bi-person display-1 text-muted"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <p class="text-muted mb-0">
+                        {% if user.avatar_filename %}
+                            Current profile picture
+                        {% else %}
+                            No profile picture uploaded
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Account Statistics -->
+            <div class="card shadow-sm mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up"></i> Account Statistics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h4 class="text-primary mb-0" id="feedback-count">-</h4>
+                            <small class="text-muted">Feedback</small>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-success mb-0" id="avg-rating">-</h4>
+                            <small class="text-muted">Avg Rating</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const profileForm = document.getElementById('profile-form');
+    
+    // Load user statistics
+    loadUserStats();
+    
+    profileForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        updateProfile();
+    });
+    
+    // Form validation
+    const nameInput = document.getElementById('name');
+    nameInput.addEventListener('input', function() {
+        validateName(this.value);
+    });
+});
+
+function validateName(name) {
+    const nameError = document.getElementById('name-error');
+    const nameInput = document.getElementById('name');
+    
+    if (name.length < 2) {
+        nameError.textContent = 'Name must be at least 2 characters long';
+        nameInput.classList.add('is-invalid');
+        return false;
+    }
+    
+    if (name.length > 50) {
+        nameError.textContent = 'Name must be less than 50 characters';
+        nameInput.classList.add('is-invalid');
+        return false;
+    }
+    
+    if (!/^[a-zA-Z\s]+$/.test(name)) {
+        nameError.textContent = 'Name can only contain letters and spaces';
+        nameInput.classList.add('is-invalid');
+        return false;
+    }
+    
+    nameInput.classList.remove('is-invalid');
+    return true;
+}
+
+async function updateProfile() {
+    console.log('updateProfile function called');
+    
+    const formData = new FormData(document.getElementById('profile-form'));
+    const name = formData.get('name');
+    
+    console.log('Form data - name:', name);
+    
+    if (!validateName(name)) {
+        console.log('Name validation failed');
+        return;
+    }
+    
+    console.log('Name validation passed, proceeding with update');
+    
+    try {
+        if (typeof App !== 'undefined' && App.showLoading) {
+            App.showLoading();
+        } else {
+            console.log('App.showLoading not available');
+        }
+        
+        console.log('Sending request to /profile/update');
+        
+        const response = await fetch('/profile/update', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+        });
+        
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        
+        const data = await response.json();
+        console.log('Response data:', data);
+        
+        if (response.ok) {
+            console.log('Profile update successful');
+            if (typeof App !== 'undefined' && App.showFlashMessage) {
+                App.showFlashMessage('Profile updated successfully!', 'success');
+            } else {
+                alert('Profile updated successfully!');
+            }
+            // Reload page to show updated information
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            console.log('Profile update failed:', data.error);
+            if (typeof App !== 'undefined' && App.showFlashMessage) {
+                App.showFlashMessage(data.error || 'Failed to update profile', 'danger');
+            } else {
+                alert('Failed to update profile: ' + (data.error || 'Unknown error'));
+            }
+        }
+    } catch (error) {
+        console.error('Profile update error:', error);
+        if (typeof App !== 'undefined' && App.showFlashMessage) {
+            App.showFlashMessage('An error occurred while updating profile', 'danger');
+        } else {
+            alert('An error occurred while updating profile: ' + error.message);
+        }
+    } finally {
+        if (typeof App !== 'undefined' && App.hideLoading) {
+            App.hideLoading();
+        }
+    }
+}
+
+async function loadUserStats() {
+    try {
+        const response = await fetch('/api/feedback/stats', {
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            document.getElementById('feedback-count').textContent = data.total_feedback;
+            document.getElementById('avg-rating').textContent = data.average_rating.toFixed(1);
+        }
+    } catch (error) {
+        console.error('Failed to load user stats:', error);
+    }
+}
+</script>
+{% endblock %}

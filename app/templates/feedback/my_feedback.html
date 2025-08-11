@@ -1,0 +1,201 @@
+{% extends "base.html" %} {% block title %}My Feedback - {{ user.name }}{%
+endblock %} {% block content %}
+<div class="container">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card bg-primary text-white">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col-md-8">
+              <h1 class="h3 mb-2">
+                <i class="bi bi-chat-square-text"></i> My Feedback History
+              </h1>
+              <p class="mb-0">
+                View all your submitted feedback and sentiment analysis results.
+              </p>
+            </div>
+            <div class="col-md-4 text-md-end">
+              <div class="display-4">
+                <i class="bi bi-list-ul"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feedback List -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light">
+          <h5 class="mb-0">
+            <i class="bi bi-table"></i> Your Feedback Entries
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if feedback_list %}
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Feedback</th>
+                  <th>Rating</th>
+                  <th>Sentiment</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for feedback in feedback_list %}
+                <tr>
+                  <td>
+                    <div
+                      class="text-truncate"
+                      style="max-width: 300px"
+                      title="{{ feedback.text }}"
+                    >
+                      {{ feedback.text }}
+                    </div>
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      {% for i in range(1, 6) %} {% if i <= feedback.rating %}
+                      <i class="bi bi-star-fill text-warning"></i>
+                      {% else %}
+                      <i class="bi bi-star text-muted"></i>
+                      {% endif %} {% endfor %}
+                      <span class="ms-2">{{ feedback.rating }}/5</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span
+                      class="badge bg-{{ 'success' if feedback.sentiment == 'positive' else 'danger' if feedback.sentiment == 'negative' else 'secondary' }}"
+                    >
+                      {{ feedback.sentiment }}
+                    </span>
+                    <br />
+                    <small class="text-muted"
+                      >{{ "%.1f"|format(feedback.confidence * 100) }}%
+                      confidence</small
+                    >
+                  </td>
+                  <td>{{ feedback.created_at }}</td>
+                  <td>
+                    <a
+                      href="{{ url_for('feedback.view_feedback', feedback_id=feedback.id) }}"
+                      class="btn btn-sm btn-outline-primary"
+                    >
+                      <i class="bi bi-eye"></i> View
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          {% if pagination.pages > 1 %}
+          <nav aria-label="Feedback pagination">
+            <ul class="pagination justify-content-center">
+              {% if pagination.has_prev %}
+              <li class="page-item">
+                <a
+                  class="page-link"
+                  href="{{ url_for('feedback.my_feedback', page=pagination.prev_num) }}"
+                  >Previous</a
+                >
+              </li>
+              {% endif %} {% for page_num in pagination.iter_pages() %} {% if
+              page_num %} {% if page_num != pagination.page %}
+              <li class="page-item">
+                <a
+                  class="page-link"
+                  href="{{ url_for('feedback.my_feedback', page=page_num) }}"
+                  >{{ page_num }}</a
+                >
+              </li>
+              {% else %}
+              <li class="page-item active">
+                <span class="page-link">{{ page_num }}</span>
+              </li>
+              {% endif %} {% else %}
+              <li class="page-item disabled">
+                <span class="page-link">...</span>
+              </li>
+              {% endif %} {% endfor %} {% if pagination.has_next %}
+              <li class="page-item">
+                <a
+                  class="page-link"
+                  href="{{ url_for('feedback.my_feedback', page=pagination.next_num) }}"
+                  >Next</a
+                >
+              </li>
+              {% endif %}
+            </ul>
+          </nav>
+          {% endif %} {% else %}
+          <div class="text-center py-5">
+            <div class="mb-3">
+              <i class="bi bi-chat-dots display-1 text-muted"></i>
+            </div>
+            <h4 class="text-muted">No Feedback Yet</h4>
+            <p class="text-muted">You haven't submitted any feedback yet.</p>
+            <a
+              href="{{ url_for('feedback.submit_feedback') }}"
+              class="btn btn-primary"
+            >
+              <i class="bi bi-plus-circle"></i> Submit Your First Feedback
+            </a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="row mt-4">
+    {% if not feedback_list %}
+    <!-- Only show Submit New Feedback if user has no feedback -->
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center">
+          <div class="mb-3">
+            <i class="bi bi-plus-circle display-4 text-success"></i>
+          </div>
+          <h5 class="card-title">Submit New Feedback</h5>
+          <p class="card-text">Share your thoughts and suggestions with us.</p>
+          <a
+            href="{{ url_for('feedback.submit_feedback') }}"
+            class="btn btn-success"
+          >
+            <i class="bi bi-chat-dots"></i> Submit Feedback
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="col-md-{{ '6' if not feedback_list else '12' }}">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center">
+          <div class="mb-3">
+            <i class="bi bi-person display-4 text-primary"></i>
+          </div>
+          <h5 class="card-title">Update Profile</h5>
+          <p class="card-text">
+            Manage your account information and preferences.
+          </p>
+          <a href="{{ url_for('profile.profile') }}" class="btn btn-primary">
+            <i class="bi bi-gear"></i> Edit Profile
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

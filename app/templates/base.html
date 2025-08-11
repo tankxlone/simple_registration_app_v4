@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Secure Flask Feedback Application" />
+    <title>{% block title %}Feedback App{% endblock %}</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <!-- Bootstrap Icons -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <!-- Custom CSS -->
+    <link
+      href="{{ url_for('static', filename='css/style.css') }}"
+      rel="stylesheet"
+    />
+
+    {% block extra_css %}{% endblock %}
+  </head>
+  <body>
+    <!-- Navigation -->
+    <nav
+      class="navbar navbar-expand-lg navbar-modern"
+      aria-label="Main navigation"
+    >
+      <div class="container">
+        <a
+          class="navbar-brand navbar-brand-modern"
+          href="{{ url_for('main.index') }}"
+          aria-label="Home"
+        >
+          <i class="bi bi-chat-dots"></i> Feedback App
+        </a>
+
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+          aria-controls="navbarNav"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto">
+            <li class="nav-item">
+              <a
+                class="nav-link"
+                href="{{ url_for('main.index') }}"
+                aria-label="Home page"
+              >
+                <i class="bi bi-house"></i> Home
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link"
+                href="{{ url_for('main.about') }}"
+                aria-label="About page"
+              >
+                <i class="bi bi-info-circle"></i> About
+              </a>
+            </li>
+          </ul>
+
+          <ul class="navbar-nav" id="auth-nav">
+            <!-- Auth navigation will be populated by JavaScript -->
+          </ul>
+
+          <!-- Dark Mode Toggle -->
+          <button
+            class="theme-toggle navbar-nav ms-2"
+            id="theme-toggle"
+            aria-label="Toggle dark mode"
+            onclick="toggleThemeDirect()"
+          >
+            <i class="bi bi-sun-fill" id="theme-icon"></i>
+          </button>
+
+          <!-- Manual Test Button -->
+          <button
+            class="btn btn-sm btn-outline ms-2"
+            onclick="toggleThemeManual()"
+            style="font-size: 0.8rem"
+          >
+            Test Dark
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container my-4" role="main">
+      <!-- Flash Messages -->
+      <div id="flash-messages"></div>
+
+      <!-- Page Content -->
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer
+      class="py-4 mt-5"
+      role="contentinfo"
+      style="
+        background-color: var(--bg-secondary);
+        border-top: 1px solid var(--border-primary);
+      "
+    >
+      <div class="container">
+        <div class="row">
+          <div class="col-md-6">
+            <p class="mb-0" style="color: var(--text-secondary)">
+              &copy; 2025 Feedback App. All rights reserved.
+            </p>
+          </div>
+          <div class="col-md-6 text-md-end">
+            <p class="mb-0">
+              <a
+                href="{{ url_for('main.about') }}"
+                class="text-decoration-none"
+                style="color: var(--text-secondary)"
+                >About</a
+              >
+              |
+              <a
+                href="#"
+                class="text-decoration-none"
+                style="color: var(--text-secondary)"
+                >Privacy</a
+              >
+              |
+              <a
+                href="#"
+                class="text-decoration-none"
+                style="color: var(--text-secondary)"
+                >Terms</a
+              >
+            </p>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/validation.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+    {% block extra_js %}{% endblock %}
+
+    <script>
+      // Test if scripts are loading
+      console.log("Base template script loaded");
+      console.log("App available:", typeof App);
+      console.log("Auth available:", typeof Auth);
+
+      // Initialize app when DOM is loaded
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log("DOM loaded, initializing apps...");
+
+        // Initialize App first
+        if (typeof App !== "undefined") {
+          console.log("Initializing App...");
+          App.init();
+
+          // Test theme toggle after initialization
+          setTimeout(() => {
+            console.log("Testing theme toggle...");
+            const themeToggle = document.getElementById("theme-toggle");
+            const themeIcon = document.getElementById("theme-icon");
+            console.log("Theme toggle found:", !!themeToggle);
+            console.log("Theme icon found:", !!themeIcon);
+            console.log(
+              "Current theme:",
+              document.documentElement.getAttribute("data-theme")
+            );
+          }, 1000);
+        } else {
+          console.log("App not found!");
+        }
+
+        // Initialize Auth after a short delay to ensure everything is loaded
+        setTimeout(() => {
+          console.log("Timeout reached, checking Auth...");
+
+          // Manual theme toggle function for testing
+          window.toggleThemeManual = function () {
+            console.log("Manual theme toggle clicked");
+            const currentTheme =
+              document.documentElement.getAttribute("data-theme") || "light";
+            const newTheme = currentTheme === "dark" ? "light" : "dark";
+            console.log("Switching from", currentTheme, "to", newTheme);
+            document.documentElement.setAttribute("data-theme", newTheme);
+            localStorage.setItem("theme", newTheme);
+
+            // Update icon
+            const themeIcon = document.getElementById("theme-icon");
+            if (themeIcon) {
+              themeIcon.className =
+                newTheme === "dark" ? "bi bi-moon-fill" : "bi bi-sun-fill";
+            }
+          };
+          
+          // Direct theme toggle function
+          window.toggleThemeDirect = function() {
+            console.log("Direct theme toggle clicked");
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            console.log("Switching from", currentTheme, "to", newTheme);
+            
+            // Set theme attribute
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            // Update icon
+            const themeIcon = document.getElementById('theme-icon');
+            if (themeIcon) {
+              themeIcon.className = newTheme === 'dark' ? 'bi bi-moon-fill' : 'bi bi-sun-fill';
+            }
+            
+            // Force a repaint
+            document.body.offsetHeight;
+            
+            console.log("Theme set to:", newTheme);
+            console.log("Current data-theme:", document.documentElement.getAttribute('data-theme'));
+            console.log("CSS variables:", {
+              bgPrimary: getComputedStyle(document.documentElement).getPropertyValue('--bg-primary'),
+              textPrimary: getComputedStyle(document.documentElement).getPropertyValue('--text-primary')
+            });
+          };
+          if (typeof Auth !== "undefined") {
+            console.log("Initializing Auth...");
+            Auth.init();
+          } else {
+            console.log("Auth not found! Check if auth.js is loaded properly.");
+            console.log(
+              "Available global objects:",
+              Object.keys(window).filter(
+                (key) => key.includes("Auth") || key.includes("App")
+              )
+            );
+          }
+        }, 200);
+      });
+    </script>
+  </body>
+</html>

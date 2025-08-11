@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}View Feedback - {{ user.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="h3 mb-2">
+                                <i class="bi bi-chat-square-text"></i> Feedback Details
+                            </h1>
+                            <p class="mb-0">View detailed information about your feedback submission.</p>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <div class="display-4">
+                                <i class="bi bi-eye"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Details -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle"></i> Feedback Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6 class="text-muted mb-2">Feedback Text</h6>
+                            <p class="lead">{{ feedback.text }}</p>
+                            
+                            <h6 class="text-muted mb-2 mt-4">Rating</h6>
+                            <div class="d-flex align-items-center mb-3">
+                                {% for i in range(1, 6) %}
+                                    {% if i <= feedback.rating %}
+                                        <i class="bi bi-star-fill text-warning fs-4"></i>
+                                    {% else %}
+                                        <i class="bi bi-star text-muted fs-4"></i>
+                                    {% endif %}
+                                {% endfor %}
+                                <span class="ms-3 fs-5">{{ feedback.rating }}/5</span>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title">Sentiment Analysis</h6>
+                                    
+                                    <div class="mb-3">
+                                        <span class="badge bg-{{ 'success' if feedback.sentiment == 'positive' else 'danger' if feedback.sentiment == 'negative' else 'secondary' }} fs-6">
+                                            {{ feedback.sentiment|title }}
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <small class="text-muted">Confidence</small>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar bg-{{ 'success' if feedback.sentiment == 'positive' else 'danger' if feedback.sentiment == 'negative' else 'secondary' }}" 
+                                                 style="width: {{ feedback.confidence * 100 }}%"></div>
+                                        </div>
+                                        <small class="text-muted">{{ "%.1f"|format(feedback.confidence * 100) }}%</small>
+                                    </div>
+                                    
+                                    {% if feedback.is_corrected %}
+                                    <div class="alert alert-info">
+                                        <small>
+                                            <i class="bi bi-info-circle"></i>
+                                            This sentiment was manually corrected by an admin.
+                                        </small>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-2">Submitted On</h6>
+                            <p class="mb-0">{{ feedback.created_at }}</p>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-2">Feedback ID</h6>
+                            <p class="mb-0 text-muted">#{{ feedback.id }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('feedback.my_feedback') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to My Feedback
+                </a>
+                
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary">
+                    <i class="bi bi-speedometer2"></i> Go to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

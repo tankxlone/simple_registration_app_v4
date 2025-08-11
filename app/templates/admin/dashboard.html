@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Feedback App{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="h3 mb-2">
+                                <i class="bi bi-shield-check"></i> Admin Dashboard
+                            </h1>
+                            <p class="mb-0">Manage users, monitor feedback, and oversee platform operations.</p>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <div class="display-4">
+                                <i class="bi bi-gear-wide-connected"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-people display-4 text-primary"></i>
+                    </div>
+                    <h3 class="card-title" id="total-users">-</h3>
+                    <p class="card-text text-muted">Total Users</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-chat-dots display-4 text-success"></i>
+                    </div>
+                    <h3 class="card-title">{{ feedback_submitted }}</h3>
+                    <p class="card-text text-muted">Feedback Submitted</p>
+                    <small class="text-muted">{{ "%.1f"|format(feedback_rate) }}% of users</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-clock display-4 text-warning"></i>
+                    </div>
+                    <h3 class="card-title">{{ pending_feedback }}</h3>
+                    <p class="card-text text-muted">Pending Feedback</p>
+                    <small class="text-muted">Users without feedback</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-star display-4 text-warning"></i>
+                    </div>
+                    <h3 class="card-title">{{ "%.1f"|format(avg_rating) }}</h3>
+                    <p class="card-text text-muted">Avg Rating</p>
+                    <small class="text-muted">Out of 5 stars</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-people display-4 text-primary"></i>
+                    </div>
+                    <h5 class="card-title">Manage Users</h5>
+                    <p class="card-text">View, edit, and manage user accounts and permissions.</p>
+                    <a href="{{ url_for('admin.manage_users') }}" class="btn btn-primary">
+                        <i class="bi bi-gear"></i> Manage Users
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-chat-square-text display-4 text-success"></i>
+                    </div>
+                    <h5 class="card-title">Manage Feedback</h5>
+                    <p class="card-text">Review, moderate, and correct sentiment analysis results.</p>
+                    <a href="{{ url_for('admin.manage_feedback') }}" class="btn btn-success">
+                        <i class="bi bi-pencil-square"></i> Manage Feedback
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-download display-4 text-info"></i>
+                    </div>
+                    <h5 class="card-title">Export Data</h5>
+                    <p class="card-text">Export user and feedback data for analysis and reporting.</p>
+                    <button class="btn btn-info" onclick="exportData()">
+                        <i class="bi bi-file-earmark-arrow-down"></i> Export Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sentiment Distribution -->
+    <div class="row mb-4">
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pie-chart"></i> Sentiment Distribution
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="border-end">
+                                <h3 class="text-success">{{ sentiment_distribution.get('positive', 0) }}</h3>
+                                <p class="text-muted mb-0">Positive</p>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border-end">
+                                <h3 class="text-secondary">{{ sentiment_distribution.get('neutral', 0) }}</h3>
+                                <p class="text-muted mb-0">Neutral</p>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <h3 class="text-danger">{{ sentiment_distribution.get('negative', 0) }}</h3>
+                            <p class="text-muted mb-0">Negative</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up"></i> Feedback Rate
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="display-4 text-primary mb-2">{{ "%.1f"|format(feedback_rate) }}%</div>
+                    <p class="text-muted mb-0">Users who submitted feedback</p>
+                    <div class="progress mt-3" style="height: 10px;">
+                        <div class="progress-bar bg-primary" style="width: {{ feedback_rate }}%"></div>
+                    </div>
+                    <small class="text-muted">{{ feedback_submitted }} out of {{ total_users }} users</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clock-history"></i> Recent User Activity
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="recent-users">
+                        <p class="text-muted text-center">Loading recent users...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-chat-dots"></i> Recent Feedback
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="recent-feedback">
+                        <p class="text-muted text-center">Loading recent feedback...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadAdminStats();
+    loadRecentActivity();
+});
+
+async function loadAdminStats() {
+    try {
+        const response = await fetch('/api/admin/stats', {
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            document.getElementById('total-users').textContent = data.total_users;
+            document.getElementById('total-feedback').textContent = data.total_feedback;
+            document.getElementById('active-users').textContent = data.active_users;
+            document.getElementById('avg-rating').textContent = data.average_rating.toFixed(1);
+        }
+    } catch (error) {
+        console.error('Failed to load admin stats:', error);
+    }
+}
+
+async function loadRecentActivity() {
+    try {
+        // Load recent users
+        const usersResponse = await fetch('/admin/users?limit=5', {
+            credentials: 'include'
+        });
+        
+        if (usersResponse.ok) {
+            const usersData = await usersResponse.json();
+            displayRecentUsers(usersData.users || []);
+        }
+        
+        // Load recent feedback
+        const feedbackResponse = await fetch('/admin/feedback?limit=5', {
+            credentials: 'include'
+        });
+        
+        if (feedbackResponse.ok) {
+            const feedbackData = await feedbackResponse.json();
+            displayRecentFeedback(feedbackData.feedback || []);
+        }
+    } catch (error) {
+        console.error('Failed to load recent activity:', error);
+    }
+}
+
+function displayRecentUsers(users) {
+    const container = document.getElementById('recent-users');
+    
+    if (users.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center">No recent users</p>';
+        return;
+    }
+    
+    const html = users.map(user => `
+        <div class="d-flex align-items-center mb-2">
+            <div class="flex-shrink-0">
+                <i class="bi bi-person-circle text-primary"></i>
+            </div>
+            <div class="flex-grow-1 ms-3">
+                <h6 class="mb-0">${user.name}</h6>
+                <small class="text-muted">${user.email} • ${user.role}</small>
+            </div>
+        </div>
+    `).join('');
+    
+    container.innerHTML = html;
+}
+
+function displayRecentFeedback(feedback) {
+    const container = document.getElementById('recent-feedback');
+    
+    if (feedback.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center">No recent feedback</p>';
+        return;
+    }
+    
+    const html = feedback.map(item => `
+        <div class="d-flex align-items-center mb-2">
+            <div class="flex-shrink-0">
+                <i class="bi bi-chat-dots text-success"></i>
+            </div>
+            <div class="flex-grow-1 ms-3">
+                <h6 class="mb-0">${item.text.substring(0, 50)}...</h6>
+                <small class="text-muted">Rating: ${item.rating}/5 • ${item.sentiment_label}</small>
+            </div>
+        </div>
+    `).join('');
+    
+    container.innerHTML = html;
+}
+
+async function exportData() {
+    try {
+        App.showLoading();
+        
+        const response = await fetch('/admin/export', {
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'feedback_data.csv';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            App.showFlashMessage('Data exported successfully!', 'success');
+        } else {
+            const data = await response.json();
+            App.showFlashMessage(data.error || 'Failed to export data', 'danger');
+        }
+    } catch (error) {
+        console.error('Export error:', error);
+        App.showFlashMessage('An error occurred while exporting data', 'danger');
+    } finally {
+        App.hideLoading();
+    }
+}
+</script>
+{% endblock %}

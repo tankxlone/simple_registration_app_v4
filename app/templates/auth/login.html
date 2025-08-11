@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Feedback App{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white text-center">
+                <h2 class="h4 mb-0" id="login-title">
+                    <i class="bi bi-box-arrow-in-right"></i> Login
+                </h2>
+            </div>
+            <div class="card-body">
+                <form id="login-form" novalidate aria-labelledby="login-title">
+                    <!-- Email Field -->
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email address</label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-envelope" aria-hidden="true"></i>
+                            </span>
+                            <input type="email" 
+                                   class="form-control" 
+                                   id="email" 
+                                   name="email" 
+                                   placeholder="Enter your email"
+                                   required
+                                   aria-describedby="email-error"
+                                   autocomplete="email">
+                        </div>
+                        <div class="invalid-feedback" id="email-error"></div>
+                    </div>
+
+                    <!-- Password Field -->
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-lock" aria-hidden="true"></i>
+                            </span>
+                            <input type="password" 
+                                   class="form-control" 
+                                   id="password" 
+                                   name="password" 
+                                   placeholder="Enter your password"
+                                   required
+                                   minlength="8"
+                                   aria-describedby="password-error"
+                                   autocomplete="current-password">
+                            <button class="btn btn-outline-secondary" 
+                                    type="button" 
+                                    id="toggle-password"
+                                    aria-label="Toggle password visibility">
+                                <i class="bi bi-eye" id="password-icon"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback" id="password-error"></div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="d-grid">
+                        <button type="submit" 
+                                class="btn btn-primary btn-lg" 
+                                id="login-submit">
+                            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                            <span class="btn-text">Login</span>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Links -->
+                <div class="text-center mt-3">
+                    <p class="mb-1">
+                        Don't have an account? 
+                        <a href="{{ url_for('auth.register') }}" class="text-decoration-none">Register here</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('login-form');
+    const emailField = document.getElementById('email');
+    const passwordField = document.getElementById('password');
+    const submitBtn = document.getElementById('login-submit');
+    const togglePasswordBtn = document.getElementById('toggle-password');
+    const passwordIcon = document.getElementById('password-icon');
+
+    // Toggle password visibility
+    togglePasswordBtn.addEventListener('click', function() {
+        const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordField.setAttribute('type', type);
+        passwordIcon.className = type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+    });
+
+    // Form submission
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        if (!Validation.validateForm(form)) {
+            return;
+        }
+
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.querySelector('.spinner-border').classList.remove('d-none');
+        submitBtn.querySelector('.btn-text').textContent = 'Logging in...';
+
+        try {
+            const formData = {
+                email: emailField.value.trim(),
+                password: passwordField.value
+            };
+
+            const response = await fetch('{{ url_for("auth.login") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Show success message
+                App.showFlashMessage('Login successful! Redirecting...', 'success');
+                
+                // Redirect to dashboard after short delay
+                setTimeout(() => {
+                    window.location.href = '{{ url_for("main.dashboard") }}';
+                }, 1000);
+            } else {
+                // Show error message
+                if (data.errors) {
+                    // Field-specific errors
+                    Object.keys(data.errors).forEach(field => {
+                        const fieldElement = document.getElementById(field);
+                        const errorElement = document.getElementById(field + '-error');
+                        if (fieldElement && errorElement) {
+                            fieldElement.classList.add('is-invalid');
+                            errorElement.textContent = data.errors[field];
+                        }
+                    });
+                } else if (data.error) {
+                    App.showFlashMessage(data.error, 'danger');
+                }
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            App.showFlashMessage('An error occurred during login. Please try again.', 'danger');
+        } finally {
+            // Reset button state
+            submitBtn.disabled = false;
+            submitBtn.querySelector('.spinner-border').classList.add('d-none');
+            submitBtn.querySelector('.btn-text').textContent = 'Login';
+        }
+    });
+
+    // Real-time validation
+    emailField.addEventListener('blur', function() {
+        Validation.validateEmail(this);
+    });
+
+    passwordField.addEventListener('blur', function() {
+        Validation.validatePassword(this);
+    });
+
+    // Clear validation on input
+    emailField.addEventListener('input', function() {
+        this.classList.remove('is-invalid');
+    });
+
+    passwordField.addEventListener('input', function() {
+        this.classList.remove('is-invalid');
+    });
+});
+</script>
+{% endblock %}

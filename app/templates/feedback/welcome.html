@@ -1,0 +1,324 @@
+{% extends "base.html" %} {% block title %}Welcome Feedback - {{ user.name }}{%
+endblock %} {% block content %}
+<div class="container">
+  <!-- Welcome Header -->
+  <div class="row justify-content-center mb-5">
+    <div class="col-lg-8 text-center">
+      <div class="card bg-gradient-primary text-white border-0 shadow-lg">
+        <div class="card-body py-5">
+          <div class="display-1 mb-3">
+            <i class="bi bi-emoji-smile"></i>
+          </div>
+          <h1 class="display-4 fw-bold mb-3">Welcome, {{ user.name }}! 🎉</h1>
+          <p class="lead mb-0">
+            We're excited to have you on board! Please take a moment to share
+            your thoughts with us.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feedback Form -->
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light border-0">
+          <h3 class="mb-0">
+            <i class="bi bi-chat-dots text-primary"></i>
+            Tell Us About Your Experience
+          </h3>
+          <p class="text-muted mb-0 mt-2">
+            Your feedback helps us improve and provide better service to all our
+            users.
+          </p>
+        </div>
+        <div class="card-body p-4">
+          <form id="welcome-feedback-form">
+            <!-- Rating Section -->
+            <div class="mb-4">
+              <label class="form-label fw-bold"
+                >How would you rate your experience so far?</label
+              >
+              <div class="rating-input d-flex justify-content-center">
+                <div class="btn-group" role="group" aria-label="Rating">
+                  <input
+                    type="radio"
+                    class="btn-check"
+                    name="rating"
+                    id="rating1"
+                    value="1"
+                    autocomplete="off"
+                  />
+                  <label class="btn btn-outline-warning btn-lg" for="rating1">
+                    <i class="bi bi-star"></i> 1
+                  </label>
+
+                  <input
+                    type="radio"
+                    class="btn-check"
+                    name="rating"
+                    id="rating2"
+                    value="2"
+                    autocomplete="off"
+                  />
+                  <label class="btn btn-outline-warning btn-lg" for="rating2">
+                    <i class="bi bi-star"></i> 2
+                  </label>
+
+                  <input
+                    type="radio"
+                    class="btn-check"
+                    name="rating"
+                    id="rating3"
+                    value="3"
+                    autocomplete="off"
+                  />
+                  <label class="btn btn-outline-warning btn-lg" for="rating3">
+                    <i class="bi bi-star"></i> 3
+                  </label>
+
+                  <input
+                    type="radio"
+                    class="btn-check"
+                    name="rating"
+                    id="rating4"
+                    value="4"
+                    autocomplete="off"
+                  />
+                  <label class="btn btn-outline-warning btn-lg" for="rating4">
+                    <i class="bi bi-star"></i> 4
+                  </label>
+
+                  <input
+                    type="radio"
+                    class="btn-check"
+                    name="rating"
+                    id="rating5"
+                    value="5"
+                    autocomplete="off"
+                    checked
+                  />
+                  <label class="btn btn-outline-warning btn-lg" for="rating5">
+                    <i class="bi bi-star"></i> 5
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Feedback Text -->
+            <div class="mb-4">
+              <label for="feedback-text" class="form-label fw-bold">
+                What are your thoughts about our platform?
+              </label>
+              <textarea
+                class="form-control form-control-lg"
+                id="feedback-text"
+                name="text"
+                rows="5"
+                placeholder="Share your experience, suggestions, or any feedback you'd like to give us..."
+                required
+                minlength="10"
+                maxlength="500"
+              ></textarea>
+              <div class="form-text">
+                <span id="char-count">0</span>/500 characters
+              </div>
+            </div>
+
+            <!-- Real-time Sentiment Preview -->
+            <div class="mb-4" id="sentiment-preview" style="display: none">
+              <div class="card bg-light border-0">
+                <div class="card-body">
+                  <h6 class="mb-2">
+                    <i class="bi bi-robot text-primary"></i>
+                    AI Sentiment Analysis Preview
+                  </h6>
+                  <div class="d-flex align-items-center">
+                    <span class="badge bg-secondary me-2" id="sentiment-label"
+                      >Analyzing...</span
+                    >
+                    <div class="progress flex-grow-1 me-2" style="height: 8px">
+                      <div
+                        class="progress-bar"
+                        id="sentiment-bar"
+                        style="width: 0%"
+                      ></div>
+                    </div>
+                    <small class="text-muted" id="sentiment-score">0%</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="d-grid">
+              <button
+                type="submit"
+                class="btn btn-primary btn-lg"
+                id="submit-btn"
+              >
+                <i class="bi bi-send"></i>
+                Submit Feedback & Continue
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help Text -->
+  <div class="row justify-content-center mt-4">
+    <div class="col-lg-8 text-center">
+      <p class="text-muted">
+        <i class="bi bi-info-circle"></i>
+        This is a one-time feedback form to help us understand your initial
+        experience. You won't see this form again after submission.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("welcome-feedback-form");
+    const textarea = document.getElementById("feedback-text");
+    const charCount = document.getElementById("char-count");
+    const sentimentPreview = document.getElementById("sentiment-preview");
+    const sentimentLabel = document.getElementById("sentiment-label");
+    const sentimentBar = document.getElementById("sentiment-bar");
+    const sentimentScore = document.getElementById("sentiment-score");
+    const submitBtn = document.getElementById("submit-btn");
+
+    // Character counter
+    textarea.addEventListener("input", function () {
+      const count = this.value.length;
+      charCount.textContent = count;
+
+      if (count >= 10) {
+        sentimentPreview.style.display = "block";
+        // Debounce sentiment analysis
+        clearTimeout(this.sentimentTimeout);
+        this.sentimentTimeout = setTimeout(() => {
+          analyzeSentiment(this.value);
+        }, 500);
+      } else {
+        sentimentPreview.style.display = "none";
+      }
+    });
+
+    // Real-time sentiment analysis
+    async function analyzeSentiment(text) {
+      try {
+        const response = await fetch("/api/feedback/preview", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ text: text }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          updateSentimentDisplay(data.sentiment, data.confidence);
+        }
+      } catch (error) {
+        console.error("Sentiment analysis failed:", error);
+      }
+    }
+
+    function updateSentimentDisplay(sentiment, confidence) {
+      // Update label
+      sentimentLabel.textContent = sentiment;
+
+      // Update color based on sentiment
+      sentimentLabel.className = "badge me-2";
+      if (sentiment === "positive") {
+        sentimentLabel.classList.add("bg-success");
+      } else if (sentiment === "negative") {
+        sentimentLabel.classList.add("bg-danger");
+      } else {
+        sentimentLabel.classList.add("bg-secondary");
+      }
+
+      // Update progress bar
+      const percentage = Math.round(confidence * 100);
+      sentimentBar.style.width = percentage + "%";
+      sentimentScore.textContent = percentage + "%";
+
+      // Update progress bar color
+      sentimentBar.className = "progress-bar";
+      if (sentiment === "positive") {
+        sentimentBar.classList.add("bg-success");
+      } else if (sentiment === "negative") {
+        sentimentBar.classList.add("bg-danger");
+      } else {
+        sentimentBar.classList.add("bg-secondary");
+      }
+    }
+
+    // Form submission
+    form.addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const formData = {
+        text: textarea.value.trim(),
+        rating: document.querySelector('input[name="rating"]:checked').value,
+      };
+
+      // Validation
+      if (formData.text.length < 10) {
+        App.showFlashMessage(
+          "Please provide feedback text (at least 10 characters)",
+          "danger"
+        );
+        return;
+      }
+
+      // Disable submit button
+      submitBtn.disabled = true;
+      submitBtn.innerHTML =
+        '<i class="bi bi-hourglass-split"></i> Submitting...';
+
+      try {
+        const response = await fetch("/feedback/welcome", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          App.showFlashMessage(data.message, "success");
+
+          // Redirect after a short delay
+          setTimeout(() => {
+            window.location.href = data.redirect;
+          }, 1500);
+        } else {
+          App.showFlashMessage(
+            data.error || "Failed to submit feedback",
+            "danger"
+          );
+          submitBtn.disabled = false;
+          submitBtn.innerHTML =
+            '<i class="bi bi-send"></i> Submit Feedback & Continue';
+        }
+      } catch (error) {
+        console.error("Submission error:", error);
+        App.showFlashMessage("An error occurred. Please try again.", "danger");
+        submitBtn.disabled = false;
+        submitBtn.innerHTML =
+          '<i class="bi bi-send"></i> Submit Feedback & Continue';
+      }
+    });
+
+    // Initialize with 5-star rating
+    document.getElementById("rating5").checked = true;
+  });
+</script>
+{% endblock %}

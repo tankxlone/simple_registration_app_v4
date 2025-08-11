@@ -1,0 +1,241 @@
+{% extends "base.html" %} {% block title %}About - Feedback App{% endblock %} {%
+block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="mb-0">
+          <i class="bi bi-info-circle text-primary"></i> About Feedback App
+        </h2>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-8">
+            <h3>Our Mission</h3>
+            <p class="lead">
+              We provide a secure, intelligent feedback platform that helps
+              businesses and organizations understand their users better through
+              advanced sentiment analysis and comprehensive feedback management.
+            </p>
+
+            <h4>Key Features</h4>
+            <ul class="list-unstyled">
+              <li class="mb-2">
+                <i class="bi bi-shield-check text-success"></i>
+                <strong>Secure Authentication:</strong> JWT-based authentication
+                with secure cookies
+              </li>
+              <li class="mb-2">
+                <i class="bi bi-robot text-primary"></i>
+                <strong>AI-Powered Sentiment Analysis:</strong> VADER and
+                Hugging Face Transformers integration
+              </li>
+              <li class="mb-2">
+                <i class="bi bi-graph-up text-info"></i>
+                <strong>Real-time Analytics:</strong> Instant sentiment preview
+                and detailed statistics
+              </li>
+              <li class="mb-2">
+                <i class="bi bi-people text-warning"></i>
+                <strong>Role-Based Access:</strong> User and admin roles with
+                appropriate permissions
+              </li>
+              <li class="mb-2">
+                <i class="bi bi-download text-secondary"></i>
+                <strong>Data Export:</strong> CSV export functionality for
+                analysis
+              </li>
+            </ul>
+
+            <h4>Technology Stack</h4>
+            <div class="row">
+              <div class="col-md-6">
+                <h5>Backend</h5>
+                <ul>
+                  <li>Flask 3.0.0</li>
+                  <li>SQLAlchemy ORM</li>
+                  <li>PostgreSQL / SQLite</li>
+                  <li>JWT Authentication</li>
+                  <li>Rate Limiting</li>
+                </ul>
+              </div>
+              <div class="col-md-6">
+                <h5>Frontend</h5>
+                <ul>
+                  <li>Bootstrap 5</li>
+                  <li>Bootstrap Icons</li>
+                  <li>Vanilla JavaScript</li>
+                  <li>Responsive Design</li>
+                  <li>Dark/Light Mode</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <div class="card border-primary">
+              <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                  <i class="bi bi-lightning-charge"></i> Quick Stats
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="stats-card mb-3">
+                  <div class="stats-number" id="total-users">-</div>
+                  <div class="stats-label">Total Users</div>
+                </div>
+                <div class="stats-card mb-3">
+                  <div class="stats-number" id="total-feedback">-</div>
+                  <div class="stats-label">Total Feedback</div>
+                </div>
+                <div class="stats-card">
+                  <div class="stats-number" id="avg-rating">-</div>
+                  <div class="stats-label">Average Rating</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card border-success mt-3">
+              <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-gear"></i> System Status</h5>
+              </div>
+              <div class="card-body">
+                <div
+                  class="d-flex justify-content-between align-items-center mb-2"
+                >
+                  <span>Database:</span>
+                  <span class="badge bg-success">Online</span>
+                </div>
+                <div
+                  class="d-flex justify-content-between align-items-center mb-2"
+                >
+                  <span>Sentiment Analysis:</span>
+                  <span class="badge bg-success">Active</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                  <span>API:</span>
+                  <span class="badge bg-success">Running</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <hr class="my-4" />
+
+        <div class="row">
+          <div class="col-12">
+            <h4>Getting Started</h4>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                  <div class="card-body text-center">
+                    <i
+                      class="bi bi-person-plus display-4 text-primary mb-3"
+                    ></i>
+                    <h5>1. Register</h5>
+                    <p>
+                      Create your account with a valid email and strong
+                      password.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                  <div class="card-body text-center">
+                    <i class="bi bi-chat-dots display-4 text-success mb-3"></i>
+                    <h5>2. Submit Feedback</h5>
+                    <p>
+                      Share your thoughts and get instant sentiment analysis.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                  <div class="card-body text-center">
+                    <i class="bi bi-graph-up display-4 text-info mb-3"></i>
+                    <h5>3. Analyze Results</h5>
+                    <p>View detailed analytics and sentiment trends.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-center mt-4">
+          {% if user %} {% if user.has_submitted_feedback %}
+          <!-- User has completed welcome feedback -->
+          <a
+            href="{{ url_for('main.dashboard') }}"
+            class="btn btn-primary btn-lg me-3"
+          >
+            <i class="bi bi-speedometer2"></i> View Dashboard
+          </a>
+          <a
+            href="{{ url_for('profile.profile') }}"
+            class="btn btn-outline-secondary btn-lg me-3"
+          >
+            <i class="bi bi-person"></i> My Profile
+          </a>
+          {% else %}
+          <!-- User needs to complete welcome feedback -->
+          <a
+            href="{{ url_for('feedback.welcome') }}"
+            class="btn btn-success btn-lg me-3"
+          >
+            <i class="bi bi-chat-dots"></i> Complete Welcome Feedback
+          </a>
+          <a
+            href="{{ url_for('profile.profile') }}"
+            class="btn btn-outline-secondary btn-lg me-3"
+          >
+            <i class="bi bi-person"></i> My Profile
+          </a>
+          {% endif %} {% else %}
+          <!-- Guest user -->
+          <a
+            href="{{ url_for('auth.register') }}"
+            class="btn btn-primary btn-lg me-3"
+          >
+            <i class="bi bi-person-plus"></i> Get Started
+          </a>
+          {% endif %}
+          <a
+            href="{{ url_for('main.index') }}"
+            class="btn btn-outline-secondary btn-lg"
+          >
+            <i class="bi bi-house"></i> Back to Home
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Load quick stats
+    fetch("/api/admin/stats")
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.total_users !== undefined) {
+          document.getElementById("total-users").textContent = data.total_users;
+        }
+        if (data.total_feedback !== undefined) {
+          document.getElementById("total-feedback").textContent =
+            data.total_feedback;
+        }
+        if (data.average_rating !== undefined) {
+          document.getElementById("avg-rating").textContent =
+            data.average_rating.toFixed(1);
+        }
+      })
+      .catch((error) => {
+        console.log("Could not load stats:", error);
+      });
+  });
+</script>
+{% endblock %}
