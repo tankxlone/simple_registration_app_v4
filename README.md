@@ -130,6 +130,60 @@ A production-ready Flask web application with Bootstrap UI that provides secure 
    - Redis: localhost:6379
    - Nginx: http://localhost:80
 
+### Option 3: PostgreSQL with Docker Only (No Docker Compose)
+
+If you prefer to run just PostgreSQL with Docker without using docker-compose:
+
+1. **Run PostgreSQL container**
+
+   ```bash
+   docker run -d \
+     --name postgres-feedback \
+     -e POSTGRES_DB=feedback_db \
+     -e POSTGRES_USER=feedback_user \
+     -e POSTGRES_PASSWORD=feedback_password \
+     -p 5432:5432 \
+     postgres:15
+   ```
+
+2. **Update your `.env` file**
+
+   ```bash
+   DATABASE_URL=postgresql://feedback_user:feedback_password@localhost:5432/feedback_db
+   ```
+
+3. **Install dependencies and run the app locally**
+
+   ```bash
+   pip install -r requirements.txt
+   python init_db.py
+   python run.py
+   ```
+
+4. **Stop PostgreSQL when done**
+
+   ```bash
+   docker stop postgres-feedback
+   docker rm postgres-feedback
+   ```
+
+**Alternative: Persistent PostgreSQL container**
+
+```bash
+# Create a volume for data persistence
+docker volume create postgres-data
+
+# Run with persistent storage
+docker run -d \
+  --name postgres-feedback \
+  -e POSTGRES_DB=feedback_db \
+  -e POSTGRES_USER=feedback_user \
+  -e POSTGRES_PASSWORD=feedback_password \
+  -p 5432:5432 \
+  -v postgres-data:/var/lib/postgresql/data \
+  postgres:15
+```
+
 ## 🧪 Testing
 
 Run the test suite:
@@ -220,6 +274,7 @@ DATABASE_URL=postgresql://username:password@host:port/database
    ```
 
 3. **Nginx configuration**
+
    ```nginx
    server {
        listen 80;
