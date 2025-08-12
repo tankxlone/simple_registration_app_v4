@@ -28,3 +28,6 @@ Werkzeug==3.0.1
 
 # Additional utilities
 click==8.1.7
+
+# Image processing
+Pillow==10.1.0

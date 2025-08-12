@@ -85,6 +85,50 @@
             <!-- Auth navigation will be populated by JavaScript -->
           </ul>
 
+          <!-- Notification Bell (for authenticated users) -->
+          <div
+            class="navbar-nav ms-2"
+            id="notification-bell"
+            style="display: none; position: relative"
+          >
+            <!-- Bell Icon Container -->
+            <a
+              href="#"
+              class="nav-link"
+              onclick="showNotifications()"
+              aria-label="Notifications"
+              style="position: relative; padding: 8px"
+            >
+              <i class="bi bi-bell fs-5"></i>
+            </a>
+
+            <!-- Separate Badge Container - Positioned independently like Facebook/Instagram -->
+            <div
+              id="notification-count"
+              style="
+                position: absolute;
+                top: 0;
+                right: 0;
+                min-width: 24px;
+                height: 24px;
+                background-color: #dc3545;
+                color: white;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: bold;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 2px solid white;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                z-index: 9999;
+                padding: 0 6px;
+              "
+            >
+              0
+            </div>
+          </div>
+
           <!-- Dark Mode Toggle -->
           <button
             class="theme-toggle navbar-nav ms-2"
@@ -221,32 +265,41 @@
                 newTheme === "dark" ? "bi bi-moon-fill" : "bi bi-sun-fill";
             }
           };
-          
+
           // Direct theme toggle function
-          window.toggleThemeDirect = function() {
+          window.toggleThemeDirect = function () {
             console.log("Direct theme toggle clicked");
-            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            const currentTheme =
+              document.documentElement.getAttribute("data-theme") || "light";
+            const newTheme = currentTheme === "dark" ? "light" : "dark";
             console.log("Switching from", currentTheme, "to", newTheme);
-            
+
             // Set theme attribute
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            
+            document.documentElement.setAttribute("data-theme", newTheme);
+            localStorage.setItem("theme", newTheme);
+
             // Update icon
-            const themeIcon = document.getElementById('theme-icon');
+            const themeIcon = document.getElementById("theme-icon");
             if (themeIcon) {
-              themeIcon.className = newTheme === 'dark' ? 'bi bi-moon-fill' : 'bi bi-sun-fill';
+              themeIcon.className =
+                newTheme === "dark" ? "bi bi-moon-fill" : "bi bi-sun-fill";
             }
-            
+
             // Force a repaint
             document.body.offsetHeight;
-            
+
             console.log("Theme set to:", newTheme);
-            console.log("Current data-theme:", document.documentElement.getAttribute('data-theme'));
+            console.log(
+              "Current data-theme:",
+              document.documentElement.getAttribute("data-theme")
+            );
             console.log("CSS variables:", {
-              bgPrimary: getComputedStyle(document.documentElement).getPropertyValue('--bg-primary'),
-              textPrimary: getComputedStyle(document.documentElement).getPropertyValue('--text-primary')
+              bgPrimary: getComputedStyle(
+                document.documentElement
+              ).getPropertyValue("--bg-primary"),
+              textPrimary: getComputedStyle(
+                document.documentElement
+              ).getPropertyValue("--text-primary"),
             });
           };
           if (typeof Auth !== "undefined") {
@@ -261,8 +314,175 @@
               )
             );
           }
+
+          // Initialize notification bell functionality
+          console.log("About to initialize notification bell...");
+          initNotificationBell();
+
+          // Also check if bell is visible after a delay
+          setTimeout(() => {
+            const bell = document.getElementById("notification-bell");
+            const badge = document.getElementById("notification-count");
+            console.log(
+              "After 2 seconds - Bell display:",
+              bell ? bell.style.display : "bell not found"
+            );
+            console.log(
+              "After 2 seconds - Badge display:",
+              badge ? badge.style.display : "badge not found"
+            );
+            console.log(
+              "After 2 seconds - Badge text:",
+              badge ? badge.textContent : "badge not found"
+            );
+          }, 2000);
         }, 200);
       });
+
+      // Notification Bell Functions
+      function initNotificationBell() {
+        console.log("Initializing notification bell...");
+        // Check if user is authenticated and is admin
+        if (typeof Auth !== "undefined" && Auth.isAuthenticated()) {
+          // Check if user is admin before showing notification bell
+          checkUserRoleAndShowBell();
+        }
+      }
+
+      async function checkUserRoleAndShowBell() {
+        try {
+          console.log("Checking user role for notification bell...");
+          const response = await fetch("/auth/me", {
+            credentials: "include",
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log("User data:", data);
+            if (data.user && data.user.role === "admin") {
+              console.log("User is admin, showing notification bell");
+              showNotificationBell();
+              loadNotificationCount();
+              // Store admin status to prevent interference
+              window.isAdminUser = true;
+            } else {
+              console.log("User is not admin, hiding notification bell");
+              hideNotificationBell();
+              window.isAdminUser = false;
+            }
+          } else {
+            console.log("Failed to get user data, status:", response.status);
+          }
+        } catch (error) {
+          console.error("Failed to check user role:", error);
+          hideNotificationBell();
+        }
+      }
+
+      function showNotificationBell() {
+        const notificationBell = document.getElementById("notification-bell");
+        if (notificationBell) {
+          notificationBell.style.display = "block";
+          console.log("Notification bell shown");
+          // Also check if badge is visible
+          const badge = document.getElementById("notification-count");
+          if (badge) {
+            console.log("Badge found, display style:", badge.style.display);
+            console.log("Badge text content:", badge.textContent);
+          } else {
+            console.log("Badge not found!");
+          }
+        } else {
+          console.log("Notification bell element not found!");
+        }
+      }
+
+      function hideNotificationBell() {
+        // Don't hide if user is admin
+        if (window.isAdminUser) {
+          console.log("Not hiding notification bell - user is admin");
+          return;
+        }
+
+        const notificationBell = document.getElementById("notification-bell");
+        if (notificationBell) {
+          notificationBell.style.display = "none";
+          console.log("Notification bell hidden");
+        }
+      }
+
+      async function loadNotificationCount() {
+        try {
+          const response = await fetch("/api/notifications/count", {
+            credentials: "include",
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.is_admin) {
+              updateNotificationBadge(data.unread_count);
+            } else {
+              // Non-admin users don't see notification count
+              updateNotificationBadge(0);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to load notification count:", error);
+        }
+      }
+
+      function updateNotificationBadge(count) {
+        const badge = document.getElementById("notification-count");
+        if (badge) {
+          badge.textContent = count;
+          // Always show the badge for admin users, even if count is 0
+          badge.style.display = "inline";
+          console.log(`Notification badge updated: ${count}`);
+        }
+      }
+
+      function showNotifications() {
+        // Redirect to admin notifications page (admin-only feature)
+        if (typeof Auth !== "undefined" && Auth.isAuthenticated()) {
+          window.location.href = "/admin/notifications";
+        }
+      }
+
+      // Make functions globally available
+      window.showNotificationBell = showNotificationBell;
+      window.hideNotificationBell = hideNotificationBell;
+      window.loadNotificationCount = loadNotificationCount;
+      window.updateNotificationBadge = updateNotificationBadge;
+
+      // Debug function to test notification bell
+      window.testNotificationBell = function () {
+        console.log("Testing notification bell...");
+        showNotificationBell();
+        updateNotificationBadge(5); // Set a test count
+
+        // Make it very obvious for testing
+        const bell = document.getElementById("notification-bell");
+        if (bell) {
+          bell.style.backgroundColor = "yellow";
+          bell.style.border = "3px solid red";
+          bell.style.padding = "10px";
+        }
+
+        // Also make the badge very obvious
+        const badge = document.getElementById("notification-count");
+        if (badge) {
+          badge.style.backgroundColor = "red";
+          badge.style.color = "white";
+          badge.style.border = "3px solid yellow";
+          badge.style.fontSize = "14px";
+          badge.style.fontWeight = "bold";
+        }
+
+        console.log(
+          "Notification bell should now be visible with count 5 and bright yellow background"
+        );
+        console.log("Badge should be bright lime green with blue border");
+      };
     </script>
   </body>
 </html>

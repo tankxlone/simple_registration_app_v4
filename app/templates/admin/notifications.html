@@ -1,0 +1,417 @@
+{% extends "base.html" %} {% block title %}Manage Notifications - Admin
+Dashboard{% endblock %} {% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card bg-warning text-dark">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col-md-8">
+              <h1 class="h3 mb-2">
+                <i class="bi bi-bell"></i> Notification Center
+              </h1>
+              <p class="mb-0">
+                Monitor and manage system notifications and key events.
+              </p>
+            </div>
+            <div class="col-md-4 text-md-end">
+              <div class="display-4">
+                <i class="bi bi-bell-fill"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Stats -->
+  <div class="row mb-4">
+    <div class="col-md-3 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="mb-3">
+            <i class="bi bi-bell display-4 text-warning"></i>
+          </div>
+          <h3 class="card-title" id="total-notifications">-</h3>
+          <p class="card-text text-muted">Total Notifications</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="mb-3">
+            <i class="bi bi-bell-slash display-4 text-danger"></i>
+          </div>
+          <h3 class="card-title" id="unread-notifications">-</h3>
+          <p class="card-text text-muted">Unread</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="mb-3">
+            <i class="bi bi-clock-history display-4 text-info"></i>
+          </div>
+          <h3 class="card-title" id="recent-notifications">-</h3>
+          <p class="card-text text-muted">Last 24 Hours</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="mb-3">
+            <i class="bi bi-people display-4 text-success"></i>
+          </div>
+          <h3 class="card-title" id="registration-count">-</h3>
+          <p class="card-text text-muted">Registrations</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters and Actions -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col-md-6">
+              <div class="d-flex gap-2">
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="unread-only"
+                  />
+                  <label class="form-check-label" for="unread-only">
+                    Show unread only
+                  </label>
+                </div>
+                <select
+                  class="form-select form-select-sm"
+                  id="event-type-filter"
+                  style="width: auto"
+                >
+                  <option value="">All Event Types</option>
+                  <option value="registration">Registration</option>
+                  <option value="login">Login</option>
+                  <option value="feedback_submission">
+                    Feedback Submission
+                  </option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6 text-md-end">
+              <button class="btn btn-success" onclick="markAllRead()">
+                <i class="bi bi-check-all"></i> Mark All Read
+              </button>
+              <button class="btn btn-secondary" onclick="loadNotifications()">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notifications List -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light">
+          <h5 class="mb-0"><i class="bi bi-list-ul"></i> Notifications</h5>
+        </div>
+        <div class="card-body">
+          <div id="notifications-container">
+            <p class="text-muted text-center">Loading notifications...</p>
+          </div>
+
+          <!-- Pagination -->
+          <nav aria-label="Notifications pagination" class="mt-4">
+            <ul class="pagination justify-content-center" id="pagination"></ul>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  let currentPage = 1;
+  let currentPerPage = 20;
+  let currentFilters = {
+    unread_only: false,
+    event_type: "",
+  };
+
+  document.addEventListener("DOMContentLoaded", function () {
+    loadNotificationStats();
+    loadNotifications();
+
+    // Event listeners for filters
+    document
+      .getElementById("unread-only")
+      .addEventListener("change", function () {
+        currentFilters.unread_only = this.checked;
+        currentPage = 1;
+        loadNotifications();
+      });
+
+    document
+      .getElementById("event-type-filter")
+      .addEventListener("change", function () {
+        currentFilters.event_type = this.value;
+        currentPage = 1;
+        loadNotifications();
+      });
+  });
+
+  async function loadNotificationStats() {
+    try {
+      const response = await fetch("/admin/api/notifications/stats", {
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        document.getElementById("total-notifications").textContent =
+          data.total_notifications;
+        document.getElementById("unread-notifications").textContent =
+          data.unread_count;
+        document.getElementById("recent-notifications").textContent =
+          data.recent_count;
+
+        // Update registration count from event distribution
+        const registrationCount = data.event_distribution.registration || 0;
+        document.getElementById("registration-count").textContent =
+          registrationCount;
+      }
+    } catch (error) {
+      console.error("Failed to load notification stats:", error);
+    }
+  }
+
+  async function loadNotifications(page = 1) {
+    try {
+      currentPage = page;
+
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: currentPage,
+        per_page: currentPerPage,
+      });
+
+      if (currentFilters.unread_only) {
+        params.append("unread_only", "true");
+      }
+
+      if (currentFilters.event_type) {
+        params.append("event_type", currentFilters.event_type);
+      }
+
+      const response = await fetch(`/admin/api/notifications?${params}`, {
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        displayNotifications(data.notifications);
+        updatePagination(data);
+      }
+    } catch (error) {
+      console.error("Failed to load notifications:", error);
+    }
+  }
+
+  function displayNotifications(notifications) {
+    const container = document.getElementById("notifications-container");
+
+    if (notifications.length === 0) {
+      container.innerHTML =
+        '<p class="text-muted text-center">No notifications found</p>';
+      return;
+    }
+
+    const html = notifications
+      .map(
+        (notification) => `
+        <div class="card mb-3 ${
+          notification.is_read ? "border-light bg-light" : "border-warning"
+        }">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="d-flex align-items-start">
+                        <div class="flex-shrink-0 me-3">
+                            <i class="bi ${getNotificationIcon(
+                              notification.event_type
+                            )} text-${getNotificationColor(
+          notification.event_type
+        )} fs-4"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="card-title mb-1">${
+                              notification.title
+                            }</h6>
+                            <p class="card-text mb-2">${
+                              notification.message
+                            }</p>
+                            <div class="d-flex gap-3 align-items-center">
+                                <small class="text-muted">
+                                    <i class="bi bi-person"></i> ${
+                                      notification.user_name !== "System"
+                                        ? `${notification.user_name} (${notification.user_email})`
+                                        : "System Event"
+                                    }
+                                </small>
+                                <small class="text-muted">
+                                    <i class="bi bi-clock"></i> ${
+                                      notification.created_at
+                                    } (${notification.created_at_relative})
+                                </small>
+                                <small class="text-muted">
+                                    <i class="bi bi-tag"></i> ${notification.event_type.replace(
+                                      "_",
+                                      " "
+                                    )}
+                                </small>
+                            </div>
+                            ${
+                              notification.event_data &&
+                              Object.keys(notification.event_data).length > 0
+                                ? `
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <strong>Details:</strong> ${Object.entries(
+                                          notification.event_data
+                                        )
+                                          .map(([k, v]) => `${k}: ${v}`)
+                                          .join(", ")}
+                                    </small>
+                                </div>
+                            `
+                                : ""
+                            }
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0">
+                        ${
+                          !notification.is_read
+                            ? `
+                            <button class="btn btn-sm btn-outline-primary" onclick="markAsRead(${notification.id})">
+                                <i class="bi bi-check"></i> Mark Read
+                            </button>
+                        `
+                            : `
+                            <span class="badge bg-success">Read</span>
+                        `
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    `
+      )
+      .join("");
+
+    container.innerHTML = html;
+  }
+
+  function getNotificationIcon(eventType) {
+    const icons = {
+      registration: "bi-person-plus",
+      login: "bi-box-arrow-in-right",
+      feedback_submission: "bi-chat-dots",
+    };
+    return icons[eventType] || "bi-bell";
+  }
+
+  function getNotificationColor(eventType) {
+    const colors = {
+      registration: "success",
+      login: "info",
+      feedback_submission: "warning",
+    };
+    return colors[eventType] || "secondary";
+  }
+
+  function updatePagination(data) {
+    const pagination = document.getElementById("pagination");
+
+    if (data.pages <= 1) {
+      pagination.innerHTML = "";
+      return;
+    }
+
+    let html = "";
+
+    // Previous button
+    if (data.current_page > 1) {
+      html += `<li class="page-item"><a class="page-link" href="#" onclick="loadNotifications(${
+        data.current_page - 1
+      })">Previous</a></li>`;
+    }
+
+    // Page numbers
+    for (let i = 1; i <= data.pages; i++) {
+      if (i === data.current_page) {
+        html += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
+      } else {
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="loadNotifications(${i})">${i}</a></li>`;
+      }
+    }
+
+    // Next button
+    if (data.current_page < data.pages) {
+      html += `<li class="page-item"><a class="page-link" href="#" onclick="loadNotifications(${
+        data.current_page + 1
+      })">Next</a></li>`;
+    }
+
+    pagination.innerHTML = html;
+  }
+
+  async function markAsRead(notificationId) {
+    try {
+      const response = await fetch(
+        `/admin/api/notifications/${notificationId}/mark-read`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
+
+      if (response.ok) {
+        loadNotificationStats(); // Refresh stats
+        loadNotifications(currentPage); // Refresh current page
+      }
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+    }
+  }
+
+  async function markAllRead() {
+    try {
+      const response = await fetch("/admin/api/notifications/mark-all-read", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        loadNotificationStats(); // Refresh stats
+        loadNotifications(currentPage); // Refresh current page
+      }
+    } catch (error) {
+      console.error("Failed to mark all notifications as read:", error);
+    }
+  }
+</script>
+{% endblock %}

@@ -1,4 +1,5 @@
 from flask import render_template, request, jsonify, current_app
+from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 from app.profile import bp
 from app.models import User
 from app.forms import ProfileUpdateForm
@@ -7,7 +8,7 @@ import os
 from werkzeug.utils import secure_filename
 from PIL import Image
 import uuid
-import jwt
+
 
 def allowed_file(filename):
     """Check if file extension is allowed"""
@@ -58,10 +59,9 @@ def profile():
         
         if access_token:
             try:
-                # Decode the JWT token manually
-                from config import Config
-                decoded = jwt.decode(access_token, Config.JWT_SECRET_KEY, algorithms=['HS256'])
-                user_id = decoded.get('sub')
+                # Use Flask-JWT-Extended to verify token
+                verify_jwt_in_request()
+                user_id = get_jwt_identity()
                 
                 if user_id:
                     user = User.query.get(user_id)
@@ -70,7 +70,7 @@ def profile():
                 else:
                     return jsonify({'error': 'Invalid token'}), 401
             except Exception as e:
-                print(f"DEBUG: JWT decode error in profile: {e}")
+                print(f"DEBUG: JWT verification error in profile: {e}")
                 return jsonify({'error': 'Invalid token'}), 401
         else:
             return jsonify({'error': 'Authentication required'}), 401
@@ -91,10 +91,9 @@ def update_profile():
         
         if access_token:
             try:
-                # Decode the JWT token manually
-                from config import Config
-                decoded = jwt.decode(access_token, Config.JWT_SECRET_KEY, algorithms=['HS256'])
-                user_id = decoded.get('sub')
+                # Use Flask-JWT-Extended to verify token
+                verify_jwt_in_request()
+                user_id = get_jwt_identity()
                 
                 if user_id:
                     user = User.query.get(user_id)
@@ -103,7 +102,7 @@ def update_profile():
                 else:
                     return jsonify({'error': 'Invalid token'}), 401
             except Exception as e:
-                print(f"DEBUG: JWT decode error in update_profile: {e}")
+                print(f"DEBUG: JWT verification error in update_profile: {e}")
                 return jsonify({'error': 'Invalid token'}), 401
         else:
             return jsonify({'error': 'Authentication required'}), 401

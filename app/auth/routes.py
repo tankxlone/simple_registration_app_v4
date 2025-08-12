@@ -55,9 +55,20 @@ def register():
             db.session.add(user)
             db.session.commit()
             
+            # Create notification for new user registration
+            from app.models import Notification
+            Notification.create_notification(
+                event_type='registration',
+                title='New User Registration',
+                message=f'New user {name} ({email}) has registered on the platform.',
+                user_id=user.id,
+                event_data={'email': email, 'name': name}
+            )
+            db.session.commit()
+            
             # Create tokens
-            access_token = create_access_token(identity=user.id)
-            refresh_token = create_refresh_token(identity=user.id)
+            access_token = create_access_token(identity=str(user.id))
+            refresh_token = create_refresh_token(identity=str(user.id))
             
             response = make_response(jsonify({
                 'message': 'Registration successful! Welcome aboard!',
@@ -133,6 +144,17 @@ def login():
         if user and user.check_password(password):
             if not user.is_active:
                 return jsonify({'error': 'Account is deactivated'}), 403
+            
+            # Create notification for user login
+            from app.models import Notification
+            Notification.create_notification(
+                event_type='login',
+                title='User Login',
+                message=f'User {user.name} ({user.email}) has logged in.',
+                user_id=user.id,
+                event_data={'email': user.email, 'name': user.name}
+            )
+            db.session.commit()
             
             # Create tokens
             access_token = create_access_token(identity=user.id)

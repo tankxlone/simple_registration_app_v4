@@ -6,26 +6,16 @@ from app.forms import FeedbackForm
 from app.services.sentiment_service import get_sentiment_service
 from app import db
 from datetime import datetime
-import jwt
-from config import Config
+
 
 @bp.route('/welcome', methods=['GET', 'POST'])
+@jwt_required()
 def welcome_feedback():
     """Welcome feedback form for new users (one-time only)"""
     try:
-        # Check if user is authenticated
-        access_token = request.cookies.get('access_token_cookie')
-        if not access_token:
-            return redirect(url_for('auth.login'))
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
         
-        # Decode JWT token
-        decoded = jwt.decode(access_token, Config.JWT_SECRET_KEY, algorithms=['HS256'])
-        user_id = decoded.get('sub')
-        
-        if not user_id:
-            return redirect(url_for('auth.login'))
-        
-        user = User.query.get(user_id)
         if not user:
             return redirect(url_for('auth.login'))
         
@@ -65,6 +55,16 @@ def welcome_feedback():
             
             # Mark user as having submitted feedback
             user.has_submitted_feedback = True
+            
+            # Create notification for feedback submission
+            from app.models import Notification
+            Notification.create_notification(
+                event_type='feedback_submission',
+                title='New Feedback Submission',
+                message=f'User {user.name} has submitted new feedback with {rating_int}/5 rating.',
+                user_id=user.id,
+                event_data={'rating': rating_int, 'sentiment': sentiment_label, 'sentiment_score': sentiment_score}
+            )
             
             db.session.add(feedback)
             db.session.commit()
@@ -136,6 +136,16 @@ def submit_feedback():
             
             # Mark user as having submitted feedback
             user.has_submitted_feedback = True
+            
+            # Create notification for feedback submission
+            from app.models import Notification
+            Notification.create_notification(
+                event_type='feedback_submission',
+                title='New Feedback Submission',
+                message=f'User {user.name} has submitted new feedback with {rating}/5 rating.',
+                user_id=current_user_id,
+                event_data={'rating': rating, 'sentiment': sentiment_label, 'sentiment_score': sentiment_score}
+            )
             
             db.session.add(feedback)
             db.session.commit()

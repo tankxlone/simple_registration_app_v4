@@ -213,6 +213,9 @@ const Auth = {
                         <li><a class="dropdown-item" href="/admin/feedback">
                             <i class="bi bi-chat-square-text"></i> Manage Feedback
                         </a></li>
+                        <li><a class="dropdown-item" href="/admin/notifications">
+                            <i class="bi bi-bell"></i> Notifications
+                        </a></li>
                         `
                             : ""
                         }
@@ -232,6 +235,14 @@ const Auth = {
 
       // Update homepage content for authenticated users
       this.updateHomepageContent(user);
+
+      // Show notification bell only for admin users
+      if (typeof window.checkUserRoleAndShowBell === "function") {
+        // Small delay to ensure base template has initialized
+        setTimeout(() => {
+          window.checkUserRoleAndShowBell();
+        }, 100);
+      }
     } else {
       // User is not logged in
       authNav.innerHTML = `
@@ -249,6 +260,11 @@ const Auth = {
 
       // Update homepage content for guests
       this.updateHomepageContent(null);
+
+      // Hide notification bell for guests
+      if (typeof window.hideNotificationBell === "function") {
+        window.hideNotificationBell();
+      }
     }
   },
 

@@ -1,12 +1,12 @@
 from flask import render_template, request, jsonify, current_app, send_file
 from app.admin import bp
-from app.models import User, Feedback
+from app.models import User, Feedback, Notification
 from app import db
 from datetime import datetime
 import csv
 import io
 from functools import wraps
-import jwt
+
 
 def admin_required(f):
     """Decorator to require admin role"""
@@ -20,10 +20,10 @@ def admin_required(f):
         
         if access_token:
             try:
-                # Decode the JWT token manually
-                from config import Config
-                decoded = jwt.decode(access_token, Config.JWT_SECRET_KEY, algorithms=['HS256'])
-                user_id = decoded.get('sub')
+                # Use Flask-JWT-Extended to verify token
+                from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+                verify_jwt_in_request()
+                user_id = get_jwt_identity()
                 
                 print(f"DEBUG: admin_required - decoded user_id: {user_id}")
                 
@@ -40,7 +40,7 @@ def admin_required(f):
                     print(f"DEBUG: admin_required - No user_id in token")
                     return jsonify({'error': 'Invalid token'}), 401
             except Exception as e:
-                print(f"DEBUG: JWT decode error in admin_required: {e}")
+                print(f"DEBUG: JWT verification error in admin_required: {e}")
                 return jsonify({'error': 'Invalid token'}), 401
         else:
             print(f"DEBUG: admin_required - No access token found")
@@ -154,12 +154,8 @@ def toggle_user_status(user_id):
         user = User.query.get_or_404(user_id)
         print(f"DEBUG: Found user: {user.name}, current is_active: {user.is_active}")
         
-        # Get current user ID from the manually decoded token
-        access_token = request.cookies.get('access_token_cookie')
-        print(f"DEBUG: access_token: {access_token[:20] if access_token else 'None'}...")
-        from config import Config
-        decoded = jwt.decode(access_token, Config.JWT_SECRET_KEY, algorithms=['HS256'])
-        current_user_id = decoded.get('sub')
+        # Get current user ID using Flask-JWT-Extended
+        current_user_id = get_jwt_identity()
         
         print(f"DEBUG: current_user_id from token: {current_user_id}")
         
@@ -194,11 +190,8 @@ def change_user_role(user_id):
         if new_role not in ['user', 'admin']:
             return jsonify({'error': 'Invalid role'}), 400
         
-        # Get current user ID from the manually decoded token
-        access_token = request.cookies.get('access_token_cookie')
-        from config import Config
-        decoded = jwt.decode(access_token, Config.JWT_SECRET_KEY, algorithms=['HS256'])
-        current_user_id = decoded.get('sub')
+        # Get current user ID using Flask-JWT-Extended
+        current_user_id = get_jwt_identity()
         
 
         
@@ -356,3 +349,138 @@ def export_feedback_csv():
     except Exception as e:
         current_app.logger.error(f"CSV export error: {e}")
         return jsonify({'error': 'Failed to export CSV'}), 500
+
+@bp.route('/notifications')
+@admin_required
+def manage_notifications_page():
+    """Manage notifications page - HTML view"""
+    return render_template('admin/notifications.html')
+
+@bp.route('/api/notifications')
+@admin_required
+def manage_notifications():
+    """Get notifications with pagination"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        unread_only = request.args.get('unread_only', 'false').lower() == 'true'
+        
+        query = Notification.query
+        
+        if unread_only:
+            query = query.filter_by(is_read=False)
+        
+        notifications_pagination = query.order_by(Notification.created_at.desc())\
+            .paginate(page=page, per_page=per_page, error_out=False)
+        
+        notifications_list = []
+        for notification in notifications_pagination.items:
+            user = User.query.get(notification.user_id) if notification.user_id else None
+            notifications_list.append({
+                'id': notification.id,
+                'event_type': notification.event_type,
+                'title': notification.title,
+                'message': notification.message,
+                'user_name': user.name if user else 'System',
+                'user_email': user.email if user else 'N/A',
+                'event_data': notification.event_data,
+                'is_read': notification.is_read,
+                'created_at': notification.created_at.strftime('%Y-%m-%d %H:%M'),
+                'created_at_relative': _get_relative_time(notification.created_at)
+            })
+        
+        return jsonify({
+            'notifications': notifications_list,
+            'total': notifications_pagination.total,
+            'pages': notifications_pagination.pages,
+            'current_page': page,
+            'per_page': per_page,
+            'unread_count': Notification.get_unread_count()
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Notification management error: {e}")
+        return jsonify({'error': 'Failed to load notifications'}), 500
+
+@bp.route('/api/notifications/<int:notification_id>/mark-read', methods=['POST'])
+@admin_required
+def mark_notification_read(notification_id):
+    """Mark a notification as read"""
+    try:
+        notification = Notification.query.get_or_404(notification_id)
+        notification.is_read = True
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Notification marked as read',
+            'unread_count': Notification.get_unread_count()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Mark notification read error: {e}")
+        return jsonify({'error': 'Failed to mark notification as read'}), 500
+
+@bp.route('/api/notifications/mark-all-read', methods=['POST'])
+@admin_required
+def mark_all_notifications_read():
+    """Mark all notifications as read"""
+    try:
+        Notification.query.filter_by(is_read=False).update({'is_read': True})
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'All notifications marked as read',
+            'unread_count': 0
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Mark all notifications read error: {e}")
+        return jsonify({'error': 'Failed to mark notifications as read'}), 500
+
+@bp.route('/api/notifications/stats')
+@admin_required
+def notification_stats():
+    """Get notification statistics"""
+    try:
+        total_notifications = Notification.query.count()
+        unread_count = Notification.get_unread_count()
+        
+        # Get event type distribution
+        event_stats = db.session.query(
+            Notification.event_type,
+            db.func.count(Notification.id)
+        ).group_by(Notification.event_type).all()
+        
+        # Get recent activity (last 24 hours)
+        from datetime import timedelta
+        yesterday = datetime.utcnow() - timedelta(days=1)
+        recent_count = Notification.query.filter(Notification.created_at >= yesterday).count()
+        
+        return jsonify({
+            'total_notifications': total_notifications,
+            'unread_count': unread_count,
+            'recent_count': recent_count,
+            'event_distribution': dict(event_stats)
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Notification stats error: {e}")
+        return jsonify({'error': 'Failed to load notification statistics'}), 500
+
+def _get_relative_time(dt):
+    """Get relative time string (e.g., '2 hours ago')"""
+    now = datetime.utcnow()
+    diff = now - dt
+    
+    if diff.days > 0:
+        return f"{diff.days} day{'s' if diff.days != 1 else ''} ago"
+    elif diff.seconds > 3600:
+        hours = diff.seconds // 3600
+        return f"{hours} hour{'s' if hours != 1 else ''} ago"
+    elif diff.seconds > 60:
+        minutes = diff.seconds // 60
+        return f"{minutes} minute{'s' if minutes != 1 else ''} ago"
+    else:
+        return "Just now"

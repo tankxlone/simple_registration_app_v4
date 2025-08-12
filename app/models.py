@@ -130,3 +130,45 @@ class TokenBlocklist(db.Model):
     
     def __repr__(self):
         return f'<TokenBlocklist {self.jti}>'
+
+class Notification(db.Model):
+    """Model for tracking system notifications and key events"""
+    __tablename__ = 'notifications'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    event_type = db.Column(db.String(50), nullable=False)  # 'registration', 'login', 'feedback_submission'
+    title = db.Column(db.String(100), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # User who triggered the event
+    event_data = db.Column(db.JSON)  # Additional event data
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='notifications', lazy='joined')
+    
+    def __repr__(self):
+        return f'<Notification {self.event_type} by User {self.user_id}>'
+    
+    @staticmethod
+    def create_notification(event_type, title, message, user_id=None, event_data=None):
+        """Create a new notification"""
+        notification = Notification(
+            event_type=event_type,
+            title=title,
+            message=message,
+            user_id=user_id,
+            event_data=event_data or {}
+        )
+        db.session.add(notification)
+        return notification
+    
+    @staticmethod
+    def get_unread_count():
+        """Get count of unread notifications"""
+        return Notification.query.filter_by(is_read=False).count()
+    
+    @staticmethod
+    def get_recent_notifications(limit=50):
+        """Get recent notifications ordered by creation time"""
+        return Notification.query.order_by(Notification.created_at.desc()).limit(limit).all()

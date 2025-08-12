@@ -1,9 +1,8 @@
 from flask import render_template, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt, decode_token
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt, verify_jwt_in_request
 from app.main import bp
-from app.models import User, Feedback
+from app.models import User, Feedback, Notification
 from app import db
-import jwt
 
 @bp.route('/')
 def index():
@@ -15,10 +14,9 @@ def index():
         
         if access_token:
             try:
-                # Decode the JWT token manually
-                from config import Config
-                decoded = jwt.decode(access_token, Config.JWT_SECRET_KEY, algorithms=['HS256'])
-                user_id = decoded.get('sub')
+                # Use Flask-JWT-Extended to verify token
+                verify_jwt_in_request()
+                user_id = get_jwt_identity()
                 
                 if user_id:
                     user = User.query.get(user_id)
@@ -31,7 +29,7 @@ def index():
                 else:
                     print("DEBUG: No user_id in token")
             except Exception as e:
-                print(f"DEBUG: JWT decode error: {e}")
+                print(f"DEBUG: JWT verification error: {e}")
                 # Invalid token, user is not authenticated
                 pass
         else:
@@ -53,10 +51,9 @@ def dashboard():
         
         if access_token:
             try:
-                # Decode the JWT token manually
-                from config import Config
-                decoded = jwt.decode(access_token, Config.JWT_SECRET_KEY, algorithms=['HS256'])
-                user_id = decoded.get('sub')
+                # Use Flask-JWT-Extended to verify token
+                verify_jwt_in_request()
+                user_id = get_jwt_identity()
                 
                 if user_id:
                     user = User.query.get(user_id)
@@ -65,7 +62,7 @@ def dashboard():
                 else:
                     return jsonify({'error': 'Invalid token'}), 401
             except Exception as e:
-                print(f"DEBUG: JWT decode error in dashboard: {e}")
+                print(f"DEBUG: JWT verification error in dashboard: {e}")
                 return jsonify({'error': 'Invalid token'}), 401
         else:
             return jsonify({'error': 'Authentication required'}), 401
@@ -109,10 +106,9 @@ def about():
         
         if access_token:
             try:
-                # Decode the JWT token manually
-                from config import Config
-                decoded = jwt.decode(access_token, Config.JWT_SECRET_KEY, algorithms=['HS256'])
-                user_id = decoded.get('sub')
+                # Use Flask-JWT-Extended to verify token
+                verify_jwt_in_request()
+                user_id = get_jwt_identity()
                 
                 if user_id:
                     user = User.query.get(user_id)
@@ -125,7 +121,7 @@ def about():
                 else:
                     print("DEBUG: No user_id in token")
             except Exception as e:
-                print(f"DEBUG: JWT decode error: {e}")
+                print(f"DEBUG: JWT verification error: {e}")
                 # Invalid token, user is not authenticated
                 pass
         else:
@@ -141,3 +137,48 @@ def about():
 def debug():
     """Debug route for testing cookies and authentication"""
     return render_template('debug_cookies.html')
+
+@bp.route('/api/notifications/count')
+def notification_count():
+    """Get notification count for authenticated users"""
+    try:
+        # Try to get user from JWT token in cookies
+        user = None
+        access_token = request.cookies.get('access_token_cookie')
+        
+        if access_token:
+            try:
+                # Use Flask-JWT-Extended to verify token
+                verify_jwt_in_request()
+                user_id = get_jwt_identity()
+                
+                if user_id:
+                    user = User.query.get(user_id)
+                    if user:
+                        # Only admin users can see notification count
+                        if user.role == 'admin':
+                            unread_count = Notification.query.filter_by(is_read=False).count()
+                            return jsonify({
+                                'unread_count': unread_count,
+                                'authenticated': True,
+                                'is_admin': True
+                            })
+                        else:
+                            return jsonify({
+                                'unread_count': 0,
+                                'authenticated': True,
+                                'is_admin': False
+                            })
+                    else:
+                        return jsonify({'error': 'User not found'}), 404
+                else:
+                    return jsonify({'error': 'Invalid token'}), 401
+            except Exception as e:
+                print(f"DEBUG: JWT verification error in notification count: {e}")
+                return jsonify({'error': 'Invalid token'}), 401
+        else:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+    except Exception as e:
+        print(f"DEBUG: Notification count error: {e}")
+        return jsonify({'error': 'Failed to get notification count'}), 500
