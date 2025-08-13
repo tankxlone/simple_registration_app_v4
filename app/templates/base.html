@@ -134,18 +134,8 @@
             class="theme-toggle navbar-nav ms-2"
             id="theme-toggle"
             aria-label="Toggle dark mode"
-            onclick="toggleThemeDirect()"
           >
             <i class="bi bi-sun-fill" id="theme-icon"></i>
-          </button>
-
-          <!-- Manual Test Button -->
-          <button
-            class="btn btn-sm btn-outline ms-2"
-            onclick="toggleThemeManual()"
-            style="font-size: 0.8rem"
-          >
-            Test Dark
           </button>
         </div>
       </div>
@@ -248,60 +238,6 @@
         setTimeout(() => {
           console.log("Timeout reached, checking Auth...");
 
-          // Manual theme toggle function for testing
-          window.toggleThemeManual = function () {
-            console.log("Manual theme toggle clicked");
-            const currentTheme =
-              document.documentElement.getAttribute("data-theme") || "light";
-            const newTheme = currentTheme === "dark" ? "light" : "dark";
-            console.log("Switching from", currentTheme, "to", newTheme);
-            document.documentElement.setAttribute("data-theme", newTheme);
-            localStorage.setItem("theme", newTheme);
-
-            // Update icon
-            const themeIcon = document.getElementById("theme-icon");
-            if (themeIcon) {
-              themeIcon.className =
-                newTheme === "dark" ? "bi bi-moon-fill" : "bi bi-sun-fill";
-            }
-          };
-
-          // Direct theme toggle function
-          window.toggleThemeDirect = function () {
-            console.log("Direct theme toggle clicked");
-            const currentTheme =
-              document.documentElement.getAttribute("data-theme") || "light";
-            const newTheme = currentTheme === "dark" ? "light" : "dark";
-            console.log("Switching from", currentTheme, "to", newTheme);
-
-            // Set theme attribute
-            document.documentElement.setAttribute("data-theme", newTheme);
-            localStorage.setItem("theme", newTheme);
-
-            // Update icon
-            const themeIcon = document.getElementById("theme-icon");
-            if (themeIcon) {
-              themeIcon.className =
-                newTheme === "dark" ? "bi bi-moon-fill" : "bi bi-sun-fill";
-            }
-
-            // Force a repaint
-            document.body.offsetHeight;
-
-            console.log("Theme set to:", newTheme);
-            console.log(
-              "Current data-theme:",
-              document.documentElement.getAttribute("data-theme")
-            );
-            console.log("CSS variables:", {
-              bgPrimary: getComputedStyle(
-                document.documentElement
-              ).getPropertyValue("--bg-primary"),
-              textPrimary: getComputedStyle(
-                document.documentElement
-              ).getPropertyValue("--text-primary"),
-            });
-          };
           if (typeof Auth !== "undefined") {
             console.log("Initializing Auth...");
             Auth.init();
