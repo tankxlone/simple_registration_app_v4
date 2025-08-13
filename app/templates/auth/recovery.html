@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}Password Recovery{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4><i class="bi bi-key"></i> Password Recovery</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>How it works:</strong> Enter your email and one of your recovery codes to reset your password.
+                    </div>
+                    
+                    <form id="recoveryForm">
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                            <div class="invalid-feedback" id="emailError"></div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="recovery_code" class="form-label">Recovery Code</label>
+                            <input type="text" class="form-control" id="recovery_code" name="recovery_code" 
+                                   placeholder="XXXX-XXXX" required>
+                            <div class="form-text">Enter one of your 8-character recovery codes</div>
+                            <div class="invalid-feedback" id="recoveryCodeError"></div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label">New Password</label>
+                            <input type="password" class="form-control" id="new_password" name="new_password" required>
+                            <div class="form-text">Password must be at least 8 characters with uppercase, lowercase, number, and special character</div>
+                            <div class="invalid-feedback" id="newPasswordError"></div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="confirm_password" class="form-label">Confirm New Password</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                            <div class="invalid-feedback" id="confirmPasswordError"></div>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                Reset Password
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="mt-3 text-center">
+                        <a href="{{ url_for('auth.login') }}" class="text-decoration-none">
+                            <i class="bi bi-arrow-left"></i> Back to Login
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-check-circle"></i> Success!</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Your password has been reset successfully! You can now login with your new password.</p>
+            </div>
+            <div class="modal-footer">
+                <a href="{{ url_for('auth.login') }}" class="btn btn-success">Go to Login</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('recoveryForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const spinner = submitBtn.querySelector('.spinner-border');
+    
+    // Clear previous errors
+    function clearErrors() {
+        document.querySelectorAll('.is-invalid').forEach(field => {
+            field.classList.remove('is-invalid');
+        });
+        document.querySelectorAll('.invalid-feedback').forEach(feedback => {
+            feedback.textContent = '';
+        });
+    }
+    
+    // Show error for a field
+    function showError(fieldId, message) {
+        const field = document.getElementById(fieldId);
+        const errorDiv = document.getElementById(fieldId + 'Error');
+        field.classList.add('is-invalid');
+        errorDiv.textContent = message;
+    }
+    
+    // Handle form submission
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        clearErrors();
+        
+        // Get form data
+        const formData = {
+            email: document.getElementById('email').value.trim(),
+            recovery_code: document.getElementById('recovery_code').value.trim(),
+            new_password: document.getElementById('new_password').value,
+            confirm_password: document.getElementById('confirm_password').value
+        };
+        
+        // Basic validation
+        let hasErrors = false;
+        
+        if (!formData.email) {
+            showError('email', 'Email is required');
+            hasErrors = true;
+        }
+        
+        if (!formData.recovery_code) {
+            showError('recovery_code', 'Recovery code is required');
+            hasErrors = true;
+        }
+        
+        if (!formData.new_password) {
+            showError('new_password', 'New password is required');
+            hasErrors = true;
+        }
+        
+        if (!formData.confirm_password) {
+            showError('confirm_password', 'Please confirm your password');
+            hasErrors = true;
+        }
+        
+        if (formData.new_password !== formData.confirm_password) {
+            showError('confirm_password', 'Passwords do not match');
+            hasErrors = true;
+        }
+        
+        if (hasErrors) return;
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        spinner.classList.remove('d-none');
+        
+        try {
+            const response = await fetch('/auth/recovery', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Success - show modal
+                const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+                successModal.show();
+            } else {
+                // Show error
+                if (data.error) {
+                    // Show generic error for security
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+                    alertDiv.innerHTML = `
+                        <i class="bi bi-exclamation-triangle"></i>
+                        ${data.error}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    form.insertBefore(alertDiv, form.firstChild);
+                }
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+            alertDiv.innerHTML = `
+                <i class="bi bi-exclamation-triangle"></i>
+                An error occurred. Please try again.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            form.insertBefore(alertDiv, form.firstChild);
+        } finally {
+            // Reset loading state
+            submitBtn.disabled = false;
+            spinner.classList.add('d-none');
+        }
+    });
+    
+    // Format recovery code input
+    document.getElementById('recovery_code').addEventListener('input', function(e) {
+        let value = e.target.value.replace(/[^A-Z0-9]/g, '').toUpperCase();
+        if (value.length >= 4) {
+            value = value.slice(0, 4) + '-' + value.slice(4, 8);
+        }
+        e.target.value = value.slice(0, 9); // Max 9 characters (XXXX-XXXX)
+    });
+});
+</script>
+{% endblock %}

@@ -172,3 +172,104 @@ class Notification(db.Model):
     def get_recent_notifications(limit=50):
         """Get recent notifications ordered by creation time"""
         return Notification.query.order_by(Notification.created_at.desc()).limit(limit).all()
+
+class RecoveryCode(db.Model):
+    """Model for storing user recovery codes"""
+    __tablename__ = 'recovery_codes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    code_hash = db.Column(db.String(255), nullable=False)  # Hashed recovery code
+    is_used = db.Column(db.Boolean, default=False)
+    used_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='recovery_codes', lazy='joined')
+    
+    def __repr__(self):
+        return f'<RecoveryCode {self.id} for User {self.user_id}>'
+    
+    @staticmethod
+    def generate_codes(user_id, count=10):
+        """Generate new recovery codes for a user"""
+        import secrets
+        import string
+        
+        # Generate alphanumeric codes (8 characters each)
+        codes = []
+        for _ in range(count):
+            code = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(8))
+            # Format as XXXX-XXXX
+            formatted_code = f"{code[:4]}-{code[4:]}"
+            codes.append(formatted_code)
+        
+        # Hash and store codes
+        for code in codes:
+            code_hash = generate_password_hash(code)
+            recovery_code = RecoveryCode(
+                user_id=user_id,
+                code_hash=code_hash
+            )
+            db.session.add(recovery_code)
+        
+        return codes
+    
+    @staticmethod
+    def verify_code(user_id, code):
+        """Verify a recovery code for a user"""
+        recovery_codes = RecoveryCode.query.filter_by(
+            user_id=user_id, 
+            is_used=False
+        ).all()
+        
+        for recovery_code in recovery_codes:
+            if check_password_hash(recovery_code.code_hash, code):
+                return recovery_code
+        return None
+    
+    def mark_used(self):
+        """Mark this recovery code as used"""
+        self.is_used = True
+        self.used_at = datetime.utcnow()
+
+class RecoveryAttempt(db.Model):
+    """Model for tracking recovery attempts and rate limiting"""
+    __tablename__ = 'recovery_attempts'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), nullable=False, index=True)
+    ip_address = db.Column(db.String(45), nullable=True)  # IPv4 or IPv6
+    user_agent = db.Column(db.String(255), nullable=True)
+    attempt_type = db.Column(db.String(20), nullable=False)  # 'code_verification', 'password_reset'
+    success = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<RecoveryAttempt {self.attempt_type} for {self.email}>'
+    
+    @staticmethod
+    def is_rate_limited(email, max_attempts=5, window_hours=1):
+        """Check if email is rate limited for recovery attempts"""
+        from datetime import timedelta
+        
+        window_start = datetime.utcnow() - timedelta(hours=window_hours)
+        recent_attempts = RecoveryAttempt.query.filter(
+            RecoveryAttempt.email == email,
+            RecoveryAttempt.created_at >= window_start
+        ).count()
+        
+        return recent_attempts >= max_attempts
+    
+    @staticmethod
+    def log_attempt(email, ip_address, user_agent, attempt_type, success):
+        """Log a recovery attempt"""
+        attempt = RecoveryAttempt(
+            email=email,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            attempt_type=attempt_type,
+            success=success
+        )
+        db.session.add(attempt)
+        return attempt

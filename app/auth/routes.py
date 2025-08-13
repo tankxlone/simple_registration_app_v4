@@ -1,7 +1,7 @@
 from flask import render_template, redirect, url_for, flash, request, jsonify, make_response
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
 from app.auth import bp
-from app.models import User, TokenBlocklist
+from app.models import User, TokenBlocklist, RecoveryCode, RecoveryAttempt
 from app import db, limiter
 from app.forms import LoginForm, RegistrationForm
 from datetime import datetime, timedelta
@@ -55,6 +55,9 @@ def register():
             db.session.add(user)
             db.session.commit()
             
+            # Generate recovery codes for the new user
+            recovery_codes = RecoveryCode.generate_codes(user.id, count=10)
+            
             # Create notification for new user registration
             from app.models import Notification
             Notification.create_notification(
@@ -78,6 +81,7 @@ def register():
                     'name': user.name,
                     'role': user.role
                 },
+                'recovery_codes': recovery_codes,  # Include recovery codes
                 'redirect': '/feedback/welcome'  # Redirect to welcome feedback form
             }))
             
@@ -281,3 +285,129 @@ def get_current_user():
         
     except Exception as e:
         return jsonify({'error': 'Failed to get user info'}), 500
+
+@bp.route('/recovery', methods=['GET', 'POST'])
+def recovery():
+    """Password recovery using recovery codes"""
+    if request.method == 'POST':
+        data = request.get_json()
+        email = data.get('email', '').strip()
+        recovery_code = data.get('recovery_code', '').strip()
+        new_password = data.get('new_password', '')
+        confirm_password = data.get('confirm_password', '')
+        
+        # Get client IP and user agent for logging
+        ip_address = request.remote_addr
+        user_agent = request.headers.get('User-Agent', '')
+        
+        # Check rate limiting
+        if RecoveryAttempt.is_rate_limited(email):
+            RecoveryAttempt.log_attempt(email, ip_address, user_agent, 'code_verification', False)
+            db.session.commit()
+            return jsonify({
+                'error': 'Too many recovery attempts. Please try again later.'
+            }), 429
+        
+        # Validate email
+        if not email or not User.validate_email(email):
+            RecoveryAttempt.log_attempt(email, ip_address, user_agent, 'code_verification', False)
+            db.session.commit()
+            return jsonify({
+                'error': 'If the details are correct, you\'ll proceed to reset your password.'
+            }), 400
+        
+        # Find user
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            RecoveryAttempt.log_attempt(email, ip_address, user_agent, 'code_verification', False)
+            db.session.commit()
+            return jsonify({
+                'error': 'If the details are correct, you\'ll proceed to reset your password.'
+            }), 400
+        
+        # Validate recovery code
+        if not recovery_code:
+            RecoveryAttempt.log_attempt(email, ip_address, user_agent, 'code_verification', False)
+            db.session.commit()
+            return jsonify({
+                'error': 'Recovery code is required.'
+            }), 400
+        
+        # Verify recovery code
+        valid_code = RecoveryCode.verify_code(user.id, recovery_code)
+        if not valid_code:
+            RecoveryAttempt.log_attempt(email, ip_address, user_agent, 'code_verification', False)
+            db.session.commit()
+            return jsonify({
+                'error': 'If the details are correct, you\'ll proceed to reset your password.'
+            }), 400
+        
+        # Validate new password
+        is_valid, password_msg = User.validate_password(new_password)
+        if not is_valid:
+            RecoveryAttempt.log_attempt(email, ip_address, user_agent, 'code_verification', False)
+            db.session.commit()
+            return jsonify({
+                'error': password_msg
+            }), 400
+        
+        # Confirm password
+        if new_password != confirm_password:
+            RecoveryAttempt.log_attempt(email, ip_address, user_agent, 'code_verification', False)
+            db.session.commit()
+            return jsonify({
+                'error': 'Passwords do not match.'
+            }), 400
+        
+        # Reset password and mark code as used
+        user.set_password(new_password)
+        valid_code.mark_used()
+        
+        # Log successful attempt
+        RecoveryAttempt.log_attempt(email, ip_address, user_agent, 'password_reset', True)
+        
+        # Create notification for password reset
+        from app.models import Notification
+        Notification.create_notification(
+            event_type='password_reset',
+            title='Password Reset',
+            message=f'Password was reset for user {user.name} ({email}) using recovery code.',
+            user_id=user.id,
+            event_data={'email': email, 'method': 'recovery_code'}
+        )
+        
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Password reset successful! You can now login with your new password.'
+        }), 200
+    
+    return render_template('auth/recovery.html')
+
+@bp.route('/api/recovery/check-email', methods=['POST'])
+def check_recovery_email():
+    """Check if email exists and has recovery codes (for rate limiting)"""
+    data = request.get_json()
+    email = data.get('email', '').strip()
+    
+    if not email or not User.validate_email(email):
+        return jsonify({
+            'error': 'Please enter a valid email address.'
+        }), 400
+    
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({
+            'error': 'If the details are correct, you\'ll proceed to reset your password.'
+        }), 400
+    
+    # Check if user has unused recovery codes
+    unused_codes = RecoveryCode.query.filter_by(user_id=user.id, is_used=False).count()
+    if unused_codes == 0:
+        return jsonify({
+            'error': 'No recovery codes available for this account.'
+        }), 400
+    
+    return jsonify({
+        'message': 'Email verified. Please enter your recovery code and new password.'
+    }), 200

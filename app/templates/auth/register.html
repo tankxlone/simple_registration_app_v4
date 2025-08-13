@@ -229,11 +229,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Show success message
                 App.showFlashMessage(data.message || 'Account created successfully!', 'success');
                 
-                // Redirect based on server response
-                const redirectUrl = data.redirect || '{{ url_for("main.dashboard") }}';
-                setTimeout(() => {
-                    window.location.href = redirectUrl;
-                }, 1500);
+                // Show recovery codes if available
+                if (data.recovery_codes && data.recovery_codes.length > 0) {
+                    showRecoveryCodes(data.recovery_codes);
+                } else {
+                    // Redirect based on server response
+                    const redirectUrl = data.redirect || '{{ url_for("main.dashboard") }}';
+                    setTimeout(() => {
+                        window.location.href = redirectUrl;
+                    }, 1500);
+                }
             } else {
                 // Show error message
                 if (data.errors) {
@@ -284,6 +289,101 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.remove('is-invalid');
         });
     });
+    
+    // Recovery codes functionality
+    function showRecoveryCodes(codes) {
+        const container = document.getElementById('recoveryCodesContainer');
+        container.innerHTML = '';
+        
+        codes.forEach((code, index) => {
+            const col = document.createElement('div');
+            col.className = 'col-md-6 mb-2';
+            col.innerHTML = `
+                <div class="card border-warning">
+                    <div class="card-body text-center py-2">
+                        <h6 class="mb-1">Code ${index + 1}</h6>
+                        <code class="fs-5 fw-bold text-primary">${code}</code>
+                    </div>
+                </div>
+            `;
+            container.appendChild(col);
+        });
+        
+        const modal = new bootstrap.Modal(document.getElementById('recoveryCodesModal'));
+        modal.show();
+    }
+    
+    // Download recovery codes
+    document.getElementById('downloadCodesBtn').addEventListener('click', function() {
+        const codes = Array.from(document.querySelectorAll('#recoveryCodesContainer code'))
+            .map(code => code.textContent);
+        
+        const content = `Recovery Codes for ${document.getElementById('email').value}\n\n` +
+                       codes.map((code, index) => `Code ${index + 1}: ${code}`).join('\n') +
+                       '\n\nSave these codes in a secure place. You won\'t see them again!';
+        
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'recovery_codes.txt';
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+    
+    // Print recovery codes
+    document.getElementById('printCodesBtn').addEventListener('click', function() {
+        window.print();
+    });
+    
+    // Confirm codes saved
+    document.getElementById('confirmSavedBtn').addEventListener('click', function() {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('recoveryCodesModal'));
+        modal.hide();
+        
+        // Redirect to feedback welcome page
+        setTimeout(() => {
+            window.location.href = '{{ url_for("feedback.welcome_feedback") }}';
+        }, 500);
+    });
 });
 </script>
+
+<!-- Recovery Codes Modal -->
+<div class="modal fade" id="recoveryCodesModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="bi bi-shield-lock"></i> Save Your Recovery Codes
+                </h5>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Important:</strong> These recovery codes are your backup way to access your account if you forget your password. 
+                    Save them in a secure place - you won't see them again!
+                </div>
+                
+                <div class="row" id="recoveryCodesContainer">
+                    <!-- Recovery codes will be populated here -->
+                </div>
+                
+                <div class="mt-3">
+                    <button type="button" class="btn btn-outline-primary" id="downloadCodesBtn">
+                        <i class="bi bi-download"></i> Download as Text
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" id="printCodesBtn">
+                        <i class="bi bi-printer"></i> Print
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" id="confirmSavedBtn">
+                    <i class="bi bi-check-circle"></i> I've Saved My Codes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
