@@ -198,12 +198,14 @@
       });
   });
 
-  async function loadFeedback(page = 1) {
+  async function loadFeedback(page = 1, sentiment = '', search = '') {
     try {
       App.showLoading();
 
+      const sentimentParam = sentiment ? `&sentiment=${encodeURIComponent(sentiment)}` : '';
+      const searchParam = search ? `&search=${encodeURIComponent(search)}` : '';
       const response = await fetch(
-        `/admin/api/feedback?page=${page}&per_page=${feedbackPerPage}`,
+        `/admin/api/feedback?page=${page}&per_page=${feedbackPerPage}${sentimentParam}${searchParam}`,
         {
           credentials: "include",
         }
@@ -382,23 +384,45 @@
 
   function searchFeedback() {
     const searchTerm = document.getElementById("search-feedback").value.trim();
-    if (searchTerm) {
-      // Implement search functionality
-      loadFeedback(1);
-    } else {
-      loadFeedback(1);
-    }
+    currentPage = 1; // Reset to first page when searching
+    loadFeedback(1, '', searchTerm);
   }
+
+  // Add event listener for search input
+  document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search-feedback');
+    if (searchInput) {
+      // Search on input with debouncing
+      let searchTimeout;
+      searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          searchFeedback();
+        }, 300); // Wait 300ms after user stops typing
+      });
+      
+      // Also search on Enter key
+      searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          searchFeedback();
+        }
+      });
+    }
+  });
 
   function filterBySentiment() {
     const sentiment = document.getElementById("sentiment-filter").value;
-    if (sentiment) {
-      // Implement sentiment filtering
-      loadFeedback(1);
-    } else {
-      loadFeedback(1);
-    }
+    currentPage = 1; // Reset to first page when filtering
+    loadFeedback(1, sentiment);
   }
+
+  // Add event listener for sentiment filter
+  document.addEventListener('DOMContentLoaded', function() {
+    const sentimentFilter = document.getElementById('sentiment-filter');
+    if (sentimentFilter) {
+      sentimentFilter.addEventListener('change', filterBySentiment);
+    }
+  });
 
   async function editSentiment(feedbackId) {
     try {

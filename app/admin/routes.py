@@ -117,8 +117,20 @@ def manage_users():
     try:
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
+        search = request.args.get('search', '').strip()
         
-        users_pagination = User.query.order_by(User.created_at.desc())\
+        # Build query with search
+        query = User.query
+        if search:
+            search_filter = f"%{search}%"
+            query = query.filter(
+                db.or_(
+                    User.name.ilike(search_filter),
+                    User.email.ilike(search_filter)
+                )
+            )
+        
+        users_pagination = query.order_by(User.created_at.desc())\
             .paginate(page=page, per_page=per_page, error_out=False)
         
         users_list = []
@@ -225,8 +237,34 @@ def manage_feedback():
     try:
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
+        sentiment_filter = request.args.get('sentiment', '').strip()
+        search = request.args.get('search', '').strip()
         
-        feedback_pagination = Feedback.query.order_by(Feedback.created_at.desc())\
+        # Build query with filters
+        query = Feedback.query
+        
+        # Apply sentiment filter
+        if sentiment_filter:
+            # Check both original and corrected sentiment
+            query = query.filter(
+                db.or_(
+                    Feedback.sentiment_label == sentiment_filter,
+                    Feedback.admin_corrected_label == sentiment_filter
+                )
+            )
+        
+        # Apply search filter
+        if search:
+            search_filter = f"%{search}%"
+            query = query.filter(
+                db.or_(
+                    Feedback.text.ilike(search_filter),
+                    User.name.ilike(search_filter),
+                    User.email.ilike(search_filter)
+                )
+            ).join(User)  # Join with User table for name/email search
+        
+        feedback_pagination = query.order_by(Feedback.created_at.desc())\
             .paginate(page=page, per_page=per_page, error_out=False)
         
         feedback_list = []

@@ -180,12 +180,13 @@ block content %}
       });
   });
 
-  async function loadUsers(page = 1) {
+  async function loadUsers(page = 1, search = '') {
     try {
       App.showLoading();
 
+      const searchParam = search ? `&search=${encodeURIComponent(search)}` : '';
       const response = await fetch(
-        `/admin/api/users?page=${page}&per_page=${usersPerPage}`,
+        `/admin/api/users?page=${page}&per_page=${usersPerPage}${searchParam}`,
         {
           credentials: "include",
         }
@@ -318,13 +319,31 @@ block content %}
 
   function searchUsers() {
     const searchTerm = document.getElementById("search-users").value.trim();
-    if (searchTerm) {
-      // Implement search functionality
-      loadUsers(1);
-    } else {
-      loadUsers(1);
-    }
+    currentPage = 1; // Reset to first page when searching
+    loadUsers(1, searchTerm);
   }
+
+  // Add event listener for search input
+  document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search-users');
+    if (searchInput) {
+      // Search on input with debouncing
+      let searchTimeout;
+      searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          searchUsers();
+        }, 300); // Wait 300ms after user stops typing
+      });
+      
+      // Also search on Enter key
+      searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          searchUsers();
+        }
+      });
+    }
+  });
 
   async function editUser(userId) {
     try {
