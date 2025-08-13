@@ -8,76 +8,12 @@ const App = {
    * Initialize the application
    */
   init: function () {
-    this.initTheme();
     this.initFlashMessages();
     this.initAnimations();
     this.initFormEnhancements();
   },
 
-  /**
-   * Initialize theme system
-   */
-  initTheme: function () {
-    const themeToggle = document.getElementById("theme-toggle");
-    const themeIcon = document.getElementById("theme-icon");
-
-    if (!themeToggle || !themeIcon) {
-      console.log("Theme toggle elements not found");
-      return;
-    }
-
-    // Check for saved theme preference or default to light
-    const savedTheme = localStorage.getItem("theme") || "light";
-    this.setTheme(savedTheme);
-
-    // Theme toggle click handler
-    themeToggle.addEventListener("click", (e) => {
-      e.preventDefault();
-      console.log("Theme toggle clicked!");
-      const currentTheme = document.body.classList.contains("dark-mode")
-        ? "dark"
-        : "light";
-      console.log("Current theme:", currentTheme);
-      const newTheme = currentTheme === "dark" ? "light" : "dark";
-      console.log("Switching to theme:", newTheme);
-      this.setTheme(newTheme);
-    });
-  },
-
-  /**
-   * Set theme and update UI
-   */
-  setTheme: function (theme) {
-    console.log("Setting theme to:", theme);
-
-    // Remove existing theme classes
-    document.body.classList.remove("dark-mode");
-
-    // Add dark mode class if needed
-    if (theme === "dark") {
-      document.body.classList.add("dark-mode");
-    }
-
-    localStorage.setItem("theme", theme);
-
-    const themeIcon = document.getElementById("theme-icon");
-    if (themeIcon) {
-      const newIconClass =
-        theme === "dark" ? "bi bi-moon-fill" : "bi bi-sun-fill";
-      console.log("Updating icon to:", newIconClass);
-      themeIcon.className = newIconClass;
-    } else {
-      console.log("Theme icon not found!");
-    }
-
-    // Add smooth transition class
-    document.body.classList.add("theme-transitioning");
-    setTimeout(() => {
-      document.body.classList.remove("theme-transitioning");
-    }, 300);
-
-    console.log("Theme set successfully to:", theme);
-  },
+  
 
   /**
    * Initialize flash message system
