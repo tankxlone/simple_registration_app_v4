@@ -217,19 +217,6 @@
         if (typeof App !== "undefined") {
           console.log("Initializing App...");
           App.init();
-
-          // Test theme toggle after initialization
-          setTimeout(() => {
-            console.log("Testing theme toggle...");
-            const themeToggle = document.getElementById("theme-toggle");
-            const themeIcon = document.getElementById("theme-icon");
-            console.log("Theme toggle found:", !!themeToggle);
-            console.log("Theme icon found:", !!themeIcon);
-            console.log(
-              "Current theme:",
-              document.documentElement.getAttribute("data-theme")
-            );
-          }, 1000);
         } else {
           console.log("App not found!");
         }
@@ -420,5 +407,12 @@
         console.log("Badge should be bright lime green with blue border");
       };
     </script>
+
+    <!-- JavaScript Files -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/validation.js') }}"></script>
+
+    {% block scripts %}{% endblock %}
   </body>
 </html>
