@@ -134,6 +134,15 @@ def update_profile():
         
         db.session.commit()
         
+        # Create notification for profile update
+        from app.services.notification_service import send_admin_notification
+        send_admin_notification(
+            message=f'User {user.name} ({user.email}) has updated their profile.',
+            type='info',
+            user_id=user.id,
+            event_data={'name': user.name, 'avatar_updated': bool(avatar_filename)}
+        )
+        
         return jsonify({
             'message': 'Profile updated successfully',
             'user': {

@@ -406,9 +406,9 @@ def manage_notifications():
         query = Notification.query
         
         if unread_only:
-            query = query.filter_by(is_read=False)
+            query = query.filter_by(read=False)
         
-        notifications_pagination = query.order_by(Notification.created_at.desc())\
+        notifications_pagination = query.order_by(Notification.timestamp.desc())\
             .paginate(page=page, per_page=per_page, error_out=False)
         
         notifications_list = []
@@ -416,15 +416,14 @@ def manage_notifications():
             user = User.query.get(notification.user_id) if notification.user_id else None
             notifications_list.append({
                 'id': notification.id,
-                'event_type': notification.event_type,
-                'title': notification.title,
+                'type': notification.type,
                 'message': notification.message,
                 'user_name': user.name if user else 'System',
                 'user_email': user.email if user else 'N/A',
                 'event_data': notification.event_data,
-                'is_read': notification.is_read,
-                'created_at': notification.created_at.strftime('%Y-%m-%d %H:%M'),
-                'created_at_relative': _get_relative_time(notification.created_at)
+                'is_read': notification.read,
+                'created_at': notification.timestamp.strftime('%Y-%m-%d %H:%M'),
+                'created_at_relative': _get_relative_time(notification.timestamp)
             })
         
         return jsonify({
@@ -433,7 +432,7 @@ def manage_notifications():
             'pages': notifications_pagination.pages,
             'current_page': page,
             'per_page': per_page,
-            'unread_count': Notification.get_unread_count()
+            'unread_count': Notification.get_unread_count_for_role('admin')
         })
         
     except Exception as e:
@@ -446,12 +445,12 @@ def mark_notification_read(notification_id):
     """Mark a notification as read"""
     try:
         notification = Notification.query.get_or_404(notification_id)
-        notification.is_read = True
+        notification.read = True
         db.session.commit()
         
         return jsonify({
             'message': 'Notification marked as read',
-            'unread_count': Notification.get_unread_count()
+            'unread_count': Notification.get_unread_count_for_role('admin')
         }), 200
         
     except Exception as e:
@@ -464,7 +463,7 @@ def mark_notification_read(notification_id):
 def mark_all_notifications_read():
     """Mark all notifications as read"""
     try:
-        Notification.query.filter_by(is_read=False).update({'is_read': True})
+        Notification.query.filter_by(read=False).update({'read': True})
         db.session.commit()
         
         return jsonify({
@@ -483,18 +482,18 @@ def notification_stats():
     """Get notification statistics"""
     try:
         total_notifications = Notification.query.count()
-        unread_count = Notification.get_unread_count()
+        unread_count = Notification.get_unread_count_for_role('admin')
         
-        # Get event type distribution
+        # Get notification type distribution
         event_stats = db.session.query(
-            Notification.event_type,
+            Notification.type,
             db.func.count(Notification.id)
-        ).group_by(Notification.event_type).all()
+        ).group_by(Notification.type).all()
         
         # Get recent activity (last 24 hours)
         from datetime import timedelta
         yesterday = datetime.utcnow() - timedelta(days=1)
-        recent_count = Notification.query.filter(Notification.created_at >= yesterday).count()
+        recent_count = Notification.query.filter(Notification.timestamp >= yesterday).count()
         
         return jsonify({
             'total_notifications': total_notifications,

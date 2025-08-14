@@ -136,27 +136,27 @@ class Notification(db.Model):
     __tablename__ = 'notifications'
     
     id = db.Column(db.Integer, primary_key=True)
-    event_type = db.Column(db.String(50), nullable=False)  # 'registration', 'login', 'feedback_submission'
-    title = db.Column(db.String(100), nullable=False)
     message = db.Column(db.Text, nullable=False)
+    type = db.Column(db.String(20), nullable=False)  # 'success', 'info', 'warning', 'error'
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    read = db.Column(db.Boolean, default=False)
+    recipient_role = db.Column(db.String(20), default='admin')  # 'admin' or 'user'
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # User who triggered the event
     event_data = db.Column(db.JSON)  # Additional event data
-    is_read = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
     user = db.relationship('User', backref='notifications', lazy='joined')
     
     def __repr__(self):
-        return f'<Notification {self.event_type} by User {self.user_id}>'
+        return f'<Notification {self.id}: {self.type}>'
     
     @staticmethod
-    def create_notification(event_type, title, message, user_id=None, event_data=None):
+    def create_notification(message, type, recipient_role='admin', user_id=None, event_data=None):
         """Create a new notification"""
         notification = Notification(
-            event_type=event_type,
-            title=title,
             message=message,
+            type=type,
+            recipient_role=recipient_role,
             user_id=user_id,
             event_data=event_data or {}
         )
@@ -164,14 +164,24 @@ class Notification(db.Model):
         return notification
     
     @staticmethod
-    def get_unread_count():
-        """Get count of unread notifications"""
-        return Notification.query.filter_by(is_read=False).count()
+    def get_unread_count_for_role(role='admin'):
+        """Get count of unread notifications for a specific role"""
+        return Notification.query.filter_by(read=False, recipient_role=role).count()
     
     @staticmethod
-    def get_recent_notifications(limit=50):
-        """Get recent notifications ordered by creation time"""
-        return Notification.query.order_by(Notification.created_at.desc()).limit(limit).all()
+    def get_recent_notifications_for_role(role='admin', limit=50):
+        """Get recent notifications for a specific role ordered by creation time"""
+        return Notification.query.filter_by(recipient_role=role).order_by(Notification.timestamp.desc()).limit(limit).all()
+    
+    @staticmethod
+    def mark_as_read(notification_id):
+        """Mark a notification as read"""
+        notification = Notification.query.get(notification_id)
+        if notification:
+            notification.read = True
+            db.session.commit()
+            return True
+        return False
 
 class RecoveryCode(db.Model):
     """Model for storing user recovery codes"""

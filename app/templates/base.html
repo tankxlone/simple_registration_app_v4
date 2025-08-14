@@ -85,51 +85,14 @@
             <!-- Auth navigation will be populated by JavaScript -->
           </ul>
 
-          <!-- Notification Bell (for authenticated users) -->
+          <!-- Notification Dropdown (for admin users) -->
           <div
             class="navbar-nav ms-2"
-            id="notification-bell"
-            style="display: none; position: relative"
+            id="notification-dropdown-container"
+            style="display: none"
           >
-            <!-- Bell Icon Container -->
-            <a
-              href="#"
-              class="nav-link"
-              onclick="showNotifications()"
-              aria-label="Notifications"
-              style="position: relative; padding: 8px"
-            >
-              <i class="bi bi-bell fs-5"></i>
-            </a>
-
-            <!-- Separate Badge Container - Positioned independently like Facebook/Instagram -->
-            <div
-              id="notification-count"
-              style="
-                position: absolute;
-                top: 0;
-                right: 0;
-                min-width: 24px;
-                height: 24px;
-                background-color: #dc3545;
-                color: white;
-                border-radius: 12px;
-                font-size: 12px;
-                font-weight: bold;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                border: 2px solid white;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-                z-index: 9999;
-                padding: 0 6px;
-              "
-            >
-              0
-            </div>
+            {% include 'components/notification_dropdown.html' %}
           </div>
-
-
         </div>
       </div>
     </nav>
@@ -187,12 +150,18 @@
       </div>
     </footer>
 
+    <!-- Socket.IO Client -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     {% block extra_js %}{% endblock %}
 
     <script>
+      // Global Socket.IO instance
+      let socket = null;
+
       // Test if scripts are loading
       console.log("Base template script loaded");
       console.log("App available:", typeof App);
@@ -227,43 +196,25 @@
             );
           }
 
-          // Initialize notification bell functionality
-          console.log("About to initialize notification bell...");
-          initNotificationBell();
-
-          // Also check if bell is visible after a delay
-          setTimeout(() => {
-            const bell = document.getElementById("notification-bell");
-            const badge = document.getElementById("notification-count");
-            console.log(
-              "After 2 seconds - Bell display:",
-              bell ? bell.style.display : "bell not found"
-            );
-            console.log(
-              "After 2 seconds - Badge display:",
-              badge ? badge.style.display : "badge not found"
-            );
-            console.log(
-              "After 2 seconds - Badge text:",
-              badge ? badge.textContent : "badge not found"
-            );
-          }, 2000);
+          // Initialize notification system
+          console.log("About to initialize notification system...");
+          initNotificationSystem();
         }, 200);
       });
 
-      // Notification Bell Functions
-      function initNotificationBell() {
-        console.log("Initializing notification bell...");
+      // Notification System Functions
+      function initNotificationSystem() {
+        console.log("Initializing notification system...");
         // Check if user is authenticated and is admin
         if (typeof Auth !== "undefined" && Auth.isAuthenticated()) {
-          // Check if user is admin before showing notification bell
-          checkUserRoleAndShowBell();
+          // Check if user is admin before showing notification dropdown
+          checkUserRoleAndShowNotifications();
         }
       }
 
-      async function checkUserRoleAndShowBell() {
+      async function checkUserRoleAndShowNotifications() {
         try {
-          console.log("Checking user role for notification bell...");
+          console.log("Checking user role for notifications...");
           const response = await fetch("/auth/me", {
             credentials: "include",
           });
@@ -272,14 +223,16 @@
             const data = await response.json();
             console.log("User data:", data);
             if (data.user && data.user.role === "admin") {
-              console.log("User is admin, showing notification bell");
-              showNotificationBell();
+              console.log("User is admin, showing notification dropdown");
+              showNotificationDropdown();
               loadNotificationCount();
+              loadNotifications();
+              initializeSocketIO();
               // Store admin status to prevent interference
               window.isAdminUser = true;
             } else {
-              console.log("User is not admin, hiding notification bell");
-              hideNotificationBell();
+              console.log("User is not admin, hiding notification dropdown");
+              hideNotificationDropdown();
               window.isAdminUser = false;
             }
           } else {
@@ -287,39 +240,35 @@
           }
         } catch (error) {
           console.error("Failed to check user role:", error);
-          hideNotificationBell();
+          hideNotificationDropdown();
         }
       }
 
-      function showNotificationBell() {
-        const notificationBell = document.getElementById("notification-bell");
-        if (notificationBell) {
-          notificationBell.style.display = "block";
-          console.log("Notification bell shown");
-          // Also check if badge is visible
-          const badge = document.getElementById("notification-count");
-          if (badge) {
-            console.log("Badge found, display style:", badge.style.display);
-            console.log("Badge text content:", badge.textContent);
-          } else {
-            console.log("Badge not found!");
-          }
+      function showNotificationDropdown() {
+        const container = document.getElementById(
+          "notification-dropdown-container"
+        );
+        if (container) {
+          container.style.display = "block";
+          console.log("Notification dropdown shown");
         } else {
-          console.log("Notification bell element not found!");
+          console.log("Notification dropdown container not found!");
         }
       }
 
-      function hideNotificationBell() {
+      function hideNotificationDropdown() {
         // Don't hide if user is admin
         if (window.isAdminUser) {
-          console.log("Not hiding notification bell - user is admin");
+          console.log("Not hiding notification dropdown - user is admin");
           return;
         }
 
-        const notificationBell = document.getElementById("notification-bell");
-        if (notificationBell) {
-          notificationBell.style.display = "none";
-          console.log("Notification bell hidden");
+        const container = document.getElementById(
+          "notification-dropdown-container"
+        );
+        if (container) {
+          container.style.display = "none";
+          console.log("Notification dropdown hidden");
         }
       }
 
@@ -344,57 +293,196 @@
       }
 
       function updateNotificationBadge(count) {
-        const badge = document.getElementById("notification-count");
+        const badge = document.getElementById("notification-badge");
         if (badge) {
           badge.textContent = count;
-          // Always show the badge for admin users, even if count is 0
-          badge.style.display = "inline";
+          // Hide badge if count is 0
+          if (count === 0) {
+            badge.style.display = "none";
+          } else {
+            badge.style.display = "inline";
+          }
           console.log(`Notification badge updated: ${count}`);
         }
       }
 
-      function showNotifications() {
-        // Redirect to admin notifications page (admin-only feature)
-        if (typeof Auth !== "undefined" && Auth.isAuthenticated()) {
-          window.location.href = "/admin/notifications";
+      async function loadNotifications() {
+        try {
+          const response = await fetch("/api/notifications?limit=10", {
+            credentials: "include",
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            updateNotificationsList(data.notifications);
+          }
+        } catch (error) {
+          console.error("Failed to load notifications:", error);
         }
       }
 
+      function updateNotificationsList(notifications) {
+        const container = document.getElementById("notifications-list");
+        if (!container) return;
+
+        if (!notifications || notifications.length === 0) {
+          container.innerHTML = `
+            <div class="text-center text-muted py-3">
+              <i class="bi bi-bell-slash fs-4"></i>
+              <p class="mb-0">No notifications</p>
+            </div>
+          `;
+          return;
+        }
+
+        let html = "";
+        notifications.forEach((notification) => {
+          const unreadClass = notification.read ? "" : "unread";
+          const timestamp = new Date(notification.timestamp).toLocaleString();
+
+          html += `
+            <div class="notification-item ${unreadClass}" onclick="markNotificationRead(${notification.id})">
+              <div class="notification-message">${notification.message}</div>
+              <div class="notification-meta">
+                <span class="notification-type ${notification.type}">${notification.type}</span>
+                <span>${timestamp}</span>
+              </div>
+            </div>
+          `;
+        });
+
+        container.innerHTML = html;
+      }
+
+      async function markNotificationRead(notificationId) {
+        try {
+          const response = await fetch(
+            `/api/notifications/${notificationId}/read`,
+            {
+              method: "POST",
+              credentials: "include",
+            }
+          );
+
+          if (response.ok) {
+            // Reload notifications and count
+            loadNotificationCount();
+            loadNotifications();
+          }
+        } catch (error) {
+          console.error("Failed to mark notification as read:", error);
+        }
+      }
+
+      async function markAllNotificationsRead() {
+        try {
+          const response = await fetch("/api/notifications", {
+            credentials: "include",
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            // Mark all unread notifications as read
+            const unreadNotifications = data.notifications.filter(
+              (n) => !n.read
+            );
+
+            for (const notification of unreadNotifications) {
+              await markNotificationRead(notification.id);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to mark all notifications as read:", error);
+        }
+      }
+
+      function initializeSocketIO() {
+        console.log("🔌 Initializing Socket.IO connection...");
+
+        // Initialize Socket.IO connection
+        socket = io();
+
+        socket.on("connect", function () {
+          console.log("✅ Connected to Socket.IO server");
+          console.log("   Socket ID:", socket.id);
+          // Join admin room
+          console.log("   Joining admin room...");
+          socket.emit("join_admin_room");
+        });
+
+        socket.on("disconnect", function () {
+          console.log("❌ Disconnected from Socket.IO server");
+        });
+
+        socket.on("new_notification", function (data) {
+          console.log("🔔 New notification received via WebSocket:", data);
+          // Update notification count and list
+          loadNotificationCount();
+          loadNotifications();
+
+          // Show toast notification
+          console.log("   Showing toast notification...");
+          showToastNotification(data.message, data.type);
+        });
+
+        socket.on("connection_status", function (data) {
+          console.log("📡 Connection status:", data);
+        });
+
+        socket.on("room_joined", function (data) {
+          console.log("🚪 Room joined:", data);
+          if (data.room === "role_admin" && data.status === "success") {
+            console.log(
+              "   ✅ Successfully joined admin room - ready for notifications!"
+            );
+          } else {
+            console.log("   ❌ Failed to join admin room");
+          }
+        });
+
+        socket.on("connect_error", function (error) {
+          console.error("❌ Socket.IO connection error:", error);
+        });
+
+        socket.on("error", function (error) {
+          console.error("❌ Socket.IO error:", error);
+        });
+      }
+
+      function showToastNotification(message, type) {
+        console.log("🍞 Creating toast notification:", { message, type });
+
+        // Create a simple toast notification
+        const toast = document.createElement("div");
+        toast.className = `alert alert-${
+          type === "error" ? "danger" : type
+        } alert-dismissible fade show position-fixed`;
+        toast.style.cssText =
+          "top: 20px; right: 20px; z-index: 9999; min-width: 300px;";
+        toast.innerHTML = `
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+
+        document.body.appendChild(toast);
+        console.log("   ✅ Toast notification created and added to DOM");
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+            console.log("   🗑️ Toast notification auto-removed");
+          }
+        }, 5000);
+      }
+
       // Make functions globally available
-      window.showNotificationBell = showNotificationBell;
-      window.hideNotificationBell = hideNotificationBell;
+      window.showNotificationDropdown = showNotificationDropdown;
+      window.hideNotificationDropdown = hideNotificationDropdown;
       window.loadNotificationCount = loadNotificationCount;
       window.updateNotificationBadge = updateNotificationBadge;
-
-      // Debug function to test notification bell
-      window.testNotificationBell = function () {
-        console.log("Testing notification bell...");
-        showNotificationBell();
-        updateNotificationBadge(5); // Set a test count
-
-        // Make it very obvious for testing
-        const bell = document.getElementById("notification-bell");
-        if (bell) {
-          bell.style.backgroundColor = "yellow";
-          bell.style.border = "3px solid red";
-          bell.style.padding = "10px";
-        }
-
-        // Also make the badge very obvious
-        const badge = document.getElementById("notification-count");
-        if (badge) {
-          badge.style.backgroundColor = "red";
-          badge.style.color = "white";
-          badge.style.border = "3px solid yellow";
-          badge.style.fontSize = "14px";
-          badge.style.fontWeight = "bold";
-        }
-
-        console.log(
-          "Notification bell should now be visible with count 5 and bright yellow background"
-        );
-        console.log("Badge should be bright lime green with blue border");
-      };
+      window.markNotificationRead = markNotificationRead;
+      window.markAllNotificationsRead = markAllNotificationsRead;
     </script>
 
     <!-- JavaScript Files -->

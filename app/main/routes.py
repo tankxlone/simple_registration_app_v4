@@ -157,7 +157,7 @@ def notification_count():
                     if user:
                         # Only admin users can see notification count
                         if user.role == 'admin':
-                            unread_count = Notification.query.filter_by(is_read=False).count()
+                            unread_count = Notification.query.filter_by(read=False).count()
                             return jsonify({
                                 'unread_count': unread_count,
                                 'authenticated': True,

@@ -4,6 +4,7 @@ from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_socketio import SocketIO
 # from flask_wtf.csrf import CSRFProtect  # Temporarily commented out due to Flask 3.0 compatibility
 from config import Config
 import os
@@ -17,6 +18,7 @@ db = SQLAlchemy()
 migrate = Migrate()
 jwt = JWTManager()
 limiter = Limiter(key_func=get_remote_address)
+socketio = SocketIO()
 # csrf = CSRFProtect()  # Temporarily commented out
 
 def create_app(config_class=Config):
@@ -29,6 +31,7 @@ def create_app(config_class=Config):
     migrate.init_app(app, db)
     jwt.init_app(app)
     limiter.init_app(app)
+    socketio.init_app(app, cors_allowed_origins="*")
     
     # Set JWT secret key explicitly
     app.config['JWT_SECRET_KEY'] = app.config['JWT_SECRET_KEY']
@@ -61,6 +64,9 @@ def create_app(config_class=Config):
     @jwt.unauthorized_loader
     def missing_token_callback(error):
         return {'message': 'Missing token'}, 401
+    
+    # Import Socket.IO events
+    from app import socketio_events
     
     # Register CLI commands
     @app.cli.command("init-db")

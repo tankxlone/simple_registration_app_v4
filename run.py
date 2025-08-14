@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Simple run script for the Flask application
+Simple run script for the Flask application with SocketIO support
 """
-from app import create_app
+from app import create_app, socketio
 
 app = create_app()
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    socketio.run(app, debug=False, host='0.0.0.0', port=5000)

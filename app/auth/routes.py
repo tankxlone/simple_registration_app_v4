@@ -59,15 +59,13 @@ def register():
             recovery_codes = RecoveryCode.generate_codes(user.id, count=10)
             
             # Create notification for new user registration
-            from app.models import Notification
-            Notification.create_notification(
-                event_type='registration',
-                title='New User Registration',
+            from app.services.notification_service import send_admin_notification
+            send_admin_notification(
                 message=f'New user {name} ({email}) has registered on the platform.',
+                type='info',
                 user_id=user.id,
                 event_data={'email': email, 'name': name}
             )
-            db.session.commit()
             
             # Create tokens
             access_token = create_access_token(identity=str(user.id))
@@ -150,15 +148,13 @@ def login():
                 return jsonify({'error': 'Account is deactivated'}), 403
             
             # Create notification for user login
-            from app.models import Notification
-            Notification.create_notification(
-                event_type='login',
-                title='User Login',
+            from app.services.notification_service import send_admin_notification
+            send_admin_notification(
                 message=f'User {user.name} ({user.email}) has logged in.',
+                type='info',
                 user_id=user.id,
                 event_data={'email': user.email, 'name': user.name}
             )
-            db.session.commit()
             
             # Create tokens
             access_token = create_access_token(identity=user.id)

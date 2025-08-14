@@ -57,11 +57,10 @@ def welcome_feedback():
             user.has_submitted_feedback = True
             
             # Create notification for feedback submission
-            from app.models import Notification
-            Notification.create_notification(
-                event_type='feedback_submission',
-                title='New Feedback Submission',
-                message=f'User {user.name} has submitted new feedback with {rating_int}/5 rating.',
+            from app.services.notification_service import send_admin_notification
+            send_admin_notification(
+                message=f'User {user.name} has submitted new feedback with {rating_int}/5 rating. Sentiment: {sentiment_label} (score: {sentiment_score:.2f})',
+                type='info',
                 user_id=user.id,
                 event_data={'rating': rating_int, 'sentiment': sentiment_label, 'sentiment_score': sentiment_score}
             )

@@ -1,8 +1,9 @@
 from flask import request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.api import bp
-from app.models import User, Feedback
+from app.models import User, Feedback, Notification
 from app.services.sentiment_service import get_sentiment_service
+from app.services.notification_service import get_notification_count_for_role, get_notifications_for_role, mark_notification_read
 from app import db, limiter
 from sqlalchemy import text
 from datetime import datetime
@@ -161,6 +162,93 @@ def admin_stats():
     except Exception as e:
         current_app.logger.error(f"Admin stats error: {e}")
         return jsonify({'error': 'Failed to get admin statistics'}), 500
+
+@bp.route('/notifications/count', methods=['GET'])
+@jwt_required()
+def get_notification_count():
+    """Get unread notification count for current user's role"""
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Get notification count for user's role
+        unread_count = get_notification_count_for_role(user.role)
+        
+        return jsonify({
+            'is_admin': user.is_admin(),
+            'unread_count': unread_count
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting notification count: {e}")
+        return jsonify({'error': 'Failed to get notification count'}), 500
+
+@bp.route('/notifications', methods=['GET'])
+@jwt_required()
+def get_notifications():
+    """Get recent notifications for current user's role"""
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Get limit from query params
+        limit = request.args.get('limit', 50, type=int)
+        if limit > 100:  # Cap at 100
+            limit = 100
+        
+        # Get notifications for user's role
+        notifications = get_notifications_for_role(user.role, limit)
+        
+        # Format notifications
+        notification_list = []
+        for notification in notifications:
+            notification_list.append({
+                'id': notification.id,
+                'message': notification.message,
+                'type': notification.type,
+                'timestamp': notification.timestamp.isoformat(),
+                'read': notification.read,
+                'user_id': notification.user_id,
+                'event_data': notification.event_data
+            })
+        
+        return jsonify({
+            'notifications': notification_list,
+            'total': len(notification_list)
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting notifications: {e}")
+        return jsonify({'error': 'Failed to get notifications'}), 500
+
+@bp.route('/notifications/<int:notification_id>/read', methods=['POST'])
+@jwt_required()
+def mark_notification_read_api(notification_id):
+    """Mark a notification as read"""
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Mark notification as read
+        success = mark_notification_read(notification_id)
+        
+        if success:
+            return jsonify({'message': 'Notification marked as read'}), 200
+        else:
+            return jsonify({'error': 'Notification not found'}), 404
+        
+    except Exception as e:
+        current_app.logger.error(f"Error marking notification as read: {e}")
+        return jsonify({'error': 'Failed to mark notification as read'}), 500
 
 @bp.route('/health', methods=['GET'])
 def health_check():
